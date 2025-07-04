@@ -41,6 +41,17 @@ all_tprs = []
 all_aucs = []
 
 project_title = "Ovarian Cancer Classification"
+Experiment_Group = f"Radiomics_False_both_pretrained_encoder_Exp_{commit_log}"
+train_config = {
+        "k_fold": k_fold,
+        "batch_size": batch_size,
+        "radiomics": False,
+        "encoder_checkpoint": "normtverskyloss_binary_segmentation",
+        "input_dim": 64,
+        "loss_fn": "BCEWithLogits",
+        "model_type": "BinaryClassification",
+        "info": "both encoders are pretrained"
+    }
 
 for fold in range(k_fold):
     # Initialize WandB Logger
@@ -53,20 +64,11 @@ for fold in range(k_fold):
         log_model=False,
         project=project_title,
         name=run_name,
-        group=f"Radiomics_False_Exp_{commit_log}",
+        group= Experiment_Group,
         tags=[f"fold_{fold}", "radiomics=False", f"commit_{commit_log}", "On Reviewed Cleaned Data"]
     )
 
-    wandb_logger.experiment.config.update({
-        "fold": fold,
-        "k_fold": k_fold,
-        "batch_size": batch_size,
-        "radiomics": False,
-        "encoder_checkpoint": "normtverskyloss_binary_segmentation",
-        "input_dim": 64,
-        "loss_fn": "BCEWithLogits",
-        "model_type": "BinaryClassification"
-    })
+    wandb_logger.experiment.config.update(train_config)
 
 
     trainDataset = Classificaiton_Dataset(phase = 'train', k_fold = k_fold, fold = fold, radiomics_dir= False) # r"Only_radiomics_based_classification\radiomics_features_washu2_p1_143_with_labels_sdf4_nd_normseg.csv")
@@ -194,7 +196,7 @@ wandb_logger = WandbLogger(
     log_model=False,
     project=project_title,
     name=run_name,
-    group=f"Radiomics_False_Exp_{commit_log}",
+    group=Experiment_Group,
     tags=[f"fold_all", "radiomics=False", f"commit_{commit_log}"]
 )
 wandb_logger.experiment.log({"ROC Curve - All Folds": wandb.Image(final_img_path)})

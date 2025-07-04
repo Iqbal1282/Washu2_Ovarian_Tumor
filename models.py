@@ -195,7 +195,7 @@ class BinaryClassification(pl.LightningModule):
         encoder = segmodel.encode 
         encoder.to(device = "cpu")
         self.encoder = encoder
-        self.encoder_trainable = MyEncoder()
+        self.encoder_trainable = Compress_Segmentor.load_from_checkpoint(encoder_weight_path, strict=True).encode
 
         # **Freeze the encoder weights**
         for param in self.encoder.parameters():
