@@ -40,14 +40,33 @@ all_fprs = []
 all_tprs = []
 all_aucs = []
 
-project_title = "Ovarian_Tumor_WashU2_Reviewed"
+project_title = "Ovarian Cancer Classification"
 
 for fold in range(k_fold):
     # Initialize WandB Logger
-    run_name = f'F{fold}_"{commit_log}"_"{commit_string}"_{datetime.now()}'
+    run_name = f'Fold_{fold}' #{commit_log}"_"{commit_string}"_{datetime.now()}'
+    # wandb_logger = WandbLogger(
+    #         log_model=False, project=project_title, name=run_name, 
+    #     )
+    
     wandb_logger = WandbLogger(
-            log_model=False, project=project_title, name=run_name
-        )
+        log_model=False,
+        project=project_title,
+        name=run_name,
+        group=f"Radiomics_False_Exp_{commit_log}",
+        tags=[f"fold_{fold}", "radiomics=False", f"commit_{commit_log}", "On Reviewed Cleaned Data"]
+    )
+
+    wandb_logger.experiment.config.update({
+        "fold": fold,
+        "k_fold": k_fold,
+        "batch_size": batch_size,
+        "radiomics": False,
+        "encoder_checkpoint": "normtverskyloss_binary_segmentation",
+        "input_dim": 64,
+        "loss_fn": "BCEWithLogits",
+        "model_type": "BinaryClassification"
+    })
 
 
     trainDataset = Classificaiton_Dataset(phase = 'train', k_fold = k_fold, fold = fold, radiomics_dir= False) # r"Only_radiomics_based_classification\radiomics_features_washu2_p1_143_with_labels_sdf4_nd_normseg.csv")
@@ -170,11 +189,13 @@ plt.savefig(final_img_path)
 plt.close()
 
 # # Log final summary ROC to WandB
-run_name =  "All Fold AUC: " + run_name # f'classification_all_folds_{commit_log}_commit_{commit_string}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+run_name =  f"All Fold AUC: {commit_log}"  # f'classification_all_folds_{commit_log}_commit_{commit_string}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 wandb_logger = WandbLogger(
     log_model=False,
-    project= project_title, #"Ovarian_Tumor_Classification_WashU2",
-    name=run_name
+    project=project_title,
+    name=run_name,
+    group=f"Radiomics_False_Exp_{commit_log}",
+    tags=[f"fold_all", "radiomics=False", f"commit_{commit_log}"]
 )
 wandb_logger.experiment.log({"ROC Curve - All Folds": wandb.Image(final_img_path)})
 wandb.finish()
