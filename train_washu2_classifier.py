@@ -40,11 +40,13 @@ all_fprs = []
 all_tprs = []
 all_aucs = []
 
+project_title = "Ovarian_Tumor_WashU2_Reviewed"
+
 for fold in range(k_fold):
     # Initialize WandB Logger
     run_name = f'F{fold}_"{commit_log}"_"{commit_string}"_{datetime.now()}'
     wandb_logger = WandbLogger(
-            log_model=False, project="Ovarian_Tumor_WashU2_Reviewed", name=run_name
+            log_model=False, project=project_title, name=run_name
         )
 
 
@@ -139,40 +141,40 @@ for fold in range(k_fold):
 
 ######################################### MULTI-FOLD ROC CURVE PLOTTING #########################################
 
-# # Create common FPR base for interpolation
-# mean_fpr = np.linspace(0, 1, 100)
-# interp_tprs = []
+# Create common FPR base for interpolation
+mean_fpr = np.linspace(0, 1, 100)
+interp_tprs = []
 
-# plt.figure()
-# for i, (fpr, tpr, auc_score) in enumerate(zip(all_fprs, all_tprs, all_aucs)):
-#     interp_tpr = np.interp(mean_fpr, fpr, tpr)
-#     interp_tpr[0] = 0.0
-#     interp_tprs.append(interp_tpr)
-#     plt.plot(fpr, tpr, lw=1.5, alpha=0.7, label=f'Fold {i+1} (AUC = {auc_score:.2f})')
+plt.figure()
+for i, (fpr, tpr, auc_score) in enumerate(zip(all_fprs, all_tprs, all_aucs)):
+    interp_tpr = np.interp(mean_fpr, fpr, tpr)
+    interp_tpr[0] = 0.0
+    interp_tprs.append(interp_tpr)
+    plt.plot(fpr, tpr, lw=1.5, alpha=0.7, label=f'Fold {i+1} (AUC = {auc_score:.2f})')
 
-# mean_tpr = np.mean(interp_tprs, axis=0)
-# mean_tpr[-1] = 1.0
-# mean_auc = auc(mean_fpr, mean_tpr)
+mean_tpr = np.mean(interp_tprs, axis=0)
+mean_tpr[-1] = 1.0
+mean_auc = auc(mean_fpr, mean_tpr)
 
-# plt.plot(mean_fpr, mean_tpr, color='b', lw=2, linestyle='--', label=f'Mean ROC (AUC = {mean_auc:.2f})')
-# plt.plot([0, 1], [0, 1], 'k--', lw=1)
+plt.plot(mean_fpr, mean_tpr, color='b', lw=2, linestyle='--', label=f'Mean ROC (AUC = {mean_auc:.2f})')
+plt.plot([0, 1], [0, 1], 'k--', lw=1)
 
-# plt.xlabel('False Positive Rate')
-# plt.ylabel('True Positive Rate')
-# plt.title('ROC Curves Across All Folds')
-# plt.legend(loc='lower right')
-# plt.grid(True)
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curves Across All Folds')
+plt.legend(loc='lower right')
+plt.grid(True)
 
-# final_img_path = 'roc_all_folds.png'
-# plt.savefig(final_img_path)
-# plt.close()
+final_img_path = 'roc_all_folds.png'
+plt.savefig(final_img_path)
+plt.close()
 
-# # # Log final summary ROC to WandB
-# # run_name = f'classification_all_folds_{commit_log}_commit_{commit_string}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-# # wandb_logger = WandbLogger(
-# #     log_model=False,
-# #     project="Ovarian_Tumor_Classification_WashU2",
-# #     name=run_name
-# # )
-# wandb_logger.experiment.log({"ROC Curve - All Folds": wandb.Image(final_img_path)})
-# wandb.finish()
+# # Log final summary ROC to WandB
+run_name =  "All Fold AUC: " + run_name # f'classification_all_folds_{commit_log}_commit_{commit_string}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+wandb_logger = WandbLogger(
+    log_model=False,
+    project= project_title, #"Ovarian_Tumor_Classification_WashU2",
+    name=run_name
+)
+wandb_logger.experiment.log({"ROC Curve - All Folds": wandb.Image(final_img_path)})
+wandb.finish()
