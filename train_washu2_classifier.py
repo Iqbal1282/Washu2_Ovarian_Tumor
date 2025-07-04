@@ -42,9 +42,9 @@ all_aucs = []
 
 for fold in range(k_fold):
     # Initialize WandB Logger
-    run_name = f'classificaiton_fold_{fold}_"{commit_log}"_commit_"{commit_string}"_{datetime.now()}'
+    run_name = f'F_{fold}_"{commit_log}"_commit_"{commit_string}"_{datetime.now()}'
     wandb_logger = WandbLogger(
-            log_model=False, project="Ovarian_Tumor_Classification_WashU2", name=run_name
+            log_model=False, project="Ovarian_Tumor_WashU2_Reviewed", name=run_name
         )
 
 

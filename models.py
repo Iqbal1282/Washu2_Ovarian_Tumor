@@ -266,12 +266,12 @@ class BinaryClassification(pl.LightningModule):
     def _common_step(self, batch, batch_idx):
         if len(batch) == 2: 
             x, y = batch 
-            scores, scores2 = self.forward(x, x2_radiomics=x2_rad)  
+            scores, scores2 = self.forward(x)  
+            loss = self.loss_fn(scores, y.float()) + self.loss_fn(scores2, y.float())
         else: 
             x, x2_rad,  y = batch
             scores, scores2 = self.forward(x, x2_radiomics=x2_rad)  
-        
-        loss = self.loss_fn(scores, y.float()) + self.loss_fn(scores2[0], y.float()) + self.loss_fn(scores2[1], y.float())  # Ensure labels are float for BCEWithLogitsLoss
+            loss = self.loss_fn(scores, y.float()) + self.loss_fn(scores2[0], y.float()) + self.loss_fn(scores2[1], y.float())  # Ensure labels are float for BCEWithLogitsLoss
         return loss, scores, y, x 
 
     def forward(self, x, x2_radiomics=None):    
@@ -363,11 +363,17 @@ class BinaryClassification(pl.LightningModule):
 
         with torch.no_grad():
             for batch in dataloader:
-                x, radio, y = batch
-                x = x.to(self.device)
-                y = y.to(self.device)
-                radio = radio.to(self.device) if radio is not None else None
-                scores, _ = self.forward(x, radio)
+                if len(batch) == 2: 
+                    x, y = batch
+                    x = x.to(self.device)
+                    y = y.to(self.device)
+                    scores, _ = self.forward(x) #, radio)
+                else: 
+                    x, radio, y = batch
+                    x = x.to(self.device)
+                    y = y.to(self.device)
+                    radio = radio.to(self.device) if radio is not None else None
+                    scores, _ = self.forward(x, radio)
                 probs = torch.sigmoid(scores)
                 all_probs.append(probs.cpu())
                 all_targets.append(y.cpu())
