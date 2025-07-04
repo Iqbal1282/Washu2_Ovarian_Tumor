@@ -51,7 +51,7 @@ for fold in range(k_fold):
     trainDataset = Classificaiton_Dataset(phase = 'train', k_fold = k_fold, fold = fold, radiomics_dir= False) # r"Only_radiomics_based_classification\radiomics_features_washu2_p1_143_with_labels_sdf4_nd_normseg.csv")
     valDataset = Classificaiton_Dataset(phase = 'val', k_fold = k_fold, fold = fold, radiomics_dir= False) #r"Only_radiomics_based_classification\radiomics_features_washu2_p1_143_with_labels_sdf4_nd_normseg.csv")
     #testDataset =  Classificaiton_Dataset_test(phase = 'test', k_fold = k_fold, fold = fold, radiomics_dir= r"Only_radiomics_based_classification\radiomics_features_washu2_p1_143_with_labels_sdf4_nd_normseg.csv")
-    testDataset = Classificaiton_Dataset(phase = 'val', k_fold = k_fold, fold = 0, radiomics_dir= False) #r"Only_radiomics_based_classification\radiomics_features_washu2_p1_143_with_labels_sdf4_nd_normseg.csv")
+    #testDataset = Classificaiton_Dataset(phase = 'val', k_fold = k_fold, fold = 0, radiomics_dir= False) #r"Only_radiomics_based_classification\radiomics_features_washu2_p1_143_with_labels_sdf4_nd_normseg.csv")
     train_loader = DataLoader(
                 trainDataset,
                 batch_size=batch_size,
@@ -70,14 +70,14 @@ for fold in range(k_fold):
                 #persistent_workers=True,
             )
     
-    test_loader = DataLoader(
-                testDataset,
-                batch_size=batch_size,
-                shuffle=False,
-                num_workers=num_workers,
-                drop_last= False,
-                #persistent_workers=True,
-            )
+    # test_loader = DataLoader(
+    #             testDataset,
+    #             batch_size=batch_size,
+    #             shuffle=False,
+    #             num_workers=num_workers,
+    #             drop_last= False,
+    #             #persistent_workers=True,
+    #         )
 
 
     # Initialize Callbacks
@@ -109,7 +109,7 @@ for fold in range(k_fold):
 
     # Get predictions on the test set for ROC curve
     # Get predictions on the test set
-    y_true, y_probs = model.get_predictions_on_loader(test_loader)
+    y_true, y_probs = model.get_predictions_on_loader(val_loader)
     #Load best model from checkpoint after training
     best_model_path = checkpoint_callback.best_model_path
     best_model = BinaryClassification.load_from_checkpoint(
@@ -122,7 +122,7 @@ for fold in range(k_fold):
     best_model.freeze()
 
     # Get predictions using the best model
-    y_true, y_probs = best_model.get_predictions_on_loader(test_loader)
+    y_true, y_probs = best_model.get_predictions_on_loader(val_loader)
 
     # Plot and log the ROC for this fold
     fpr, tpr, roc_auc = plot_roc_curve(y_true, y_probs, fold_idx=fold + 1, wandb_logger=wandb_logger)
@@ -139,40 +139,40 @@ for fold in range(k_fold):
 
 ######################################### MULTI-FOLD ROC CURVE PLOTTING #########################################
 
-# Create common FPR base for interpolation
-mean_fpr = np.linspace(0, 1, 100)
-interp_tprs = []
+# # Create common FPR base for interpolation
+# mean_fpr = np.linspace(0, 1, 100)
+# interp_tprs = []
 
-plt.figure()
-for i, (fpr, tpr, auc_score) in enumerate(zip(all_fprs, all_tprs, all_aucs)):
-    interp_tpr = np.interp(mean_fpr, fpr, tpr)
-    interp_tpr[0] = 0.0
-    interp_tprs.append(interp_tpr)
-    plt.plot(fpr, tpr, lw=1.5, alpha=0.7, label=f'Fold {i+1} (AUC = {auc_score:.2f})')
+# plt.figure()
+# for i, (fpr, tpr, auc_score) in enumerate(zip(all_fprs, all_tprs, all_aucs)):
+#     interp_tpr = np.interp(mean_fpr, fpr, tpr)
+#     interp_tpr[0] = 0.0
+#     interp_tprs.append(interp_tpr)
+#     plt.plot(fpr, tpr, lw=1.5, alpha=0.7, label=f'Fold {i+1} (AUC = {auc_score:.2f})')
 
-mean_tpr = np.mean(interp_tprs, axis=0)
-mean_tpr[-1] = 1.0
-mean_auc = auc(mean_fpr, mean_tpr)
+# mean_tpr = np.mean(interp_tprs, axis=0)
+# mean_tpr[-1] = 1.0
+# mean_auc = auc(mean_fpr, mean_tpr)
 
-plt.plot(mean_fpr, mean_tpr, color='b', lw=2, linestyle='--', label=f'Mean ROC (AUC = {mean_auc:.2f})')
-plt.plot([0, 1], [0, 1], 'k--', lw=1)
+# plt.plot(mean_fpr, mean_tpr, color='b', lw=2, linestyle='--', label=f'Mean ROC (AUC = {mean_auc:.2f})')
+# plt.plot([0, 1], [0, 1], 'k--', lw=1)
 
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('ROC Curves Across All Folds')
-plt.legend(loc='lower right')
-plt.grid(True)
+# plt.xlabel('False Positive Rate')
+# plt.ylabel('True Positive Rate')
+# plt.title('ROC Curves Across All Folds')
+# plt.legend(loc='lower right')
+# plt.grid(True)
 
-final_img_path = 'roc_all_folds.png'
-plt.savefig(final_img_path)
-plt.close()
+# final_img_path = 'roc_all_folds.png'
+# plt.savefig(final_img_path)
+# plt.close()
 
-# Log final summary ROC to WandB
-run_name = f'classification_all_folds_{commit_log}_commit_{commit_string}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-wandb_logger = WandbLogger(
-    log_model=False,
-    project="Ovarian_Tumor_Classification_WashU2",
-    name=run_name
-)
-wandb_logger.experiment.log({"ROC Curve - All Folds": wandb.Image(final_img_path)})
-wandb.finish()
+# # # Log final summary ROC to WandB
+# # run_name = f'classification_all_folds_{commit_log}_commit_{commit_string}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+# # wandb_logger = WandbLogger(
+# #     log_model=False,
+# #     project="Ovarian_Tumor_Classification_WashU2",
+# #     name=run_name
+# # )
+# wandb_logger.experiment.log({"ROC Curve - All Folds": wandb.Image(final_img_path)})
+# wandb.finish()
