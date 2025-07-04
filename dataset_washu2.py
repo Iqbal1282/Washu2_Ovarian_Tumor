@@ -27,6 +27,11 @@ import cv2
 import os
 from PIL import Image
 from sklearn.model_selection import KFold
+import pandas as pd
+import os
+import numpy as np
+from sklearn.model_selection import StratifiedKFold
+from collections import defaultdict
 
 
 # # Training transformations
@@ -101,92 +106,99 @@ class Classificaiton_Dataset(Dataset):
 	):
 		self.root_dir = root_dir
 		self.phase = phase
-		#self.img_transform = img_transform
-
 		self.radiomics_dir = radiomics_dir
+
+		# === Step 1: Load radiomics features (if provided) ===
 		if radiomics_dir:
 			radiomics_db = pd.read_csv(radiomics_dir)
 			print("Radiomics features shape: ", radiomics_db.shape)
 
-			# Normalize paths to relative format
 			radiomics_db['ImagePath'] = radiomics_db['ImagePath'].apply(
-				lambda p: (os.path.normpath(p).replace("\\", "/").split("Images/")[-1]).replace("Patient_", "p")
+				lambda p: os.path.normpath(p).replace("\\", "/").split("Images/")[-1].replace("Patient_", "p")
 			)
-
 			radiomics_db = radiomics_db.set_index("ImagePath")
 			radiomics_db = radiomics_db.drop(columns=["PatientID", "Side", "GT", "ImagePath", "Patient ID"], errors='ignore')
 
-			# Normalize features
 			scaler = StandardScaler()
 			scaled_values = scaler.fit_transform(radiomics_db.values)
 			radiomics_db.loc[:, :] = scaled_values
-		# Step 1: Read Excel sheet
+
+		# === Step 2: Load Excel response sheet ===
 		df = pd.read_excel(response_dir, sheet_name="ROI STATS V4 (3)")
 		df = df.dropna(subset=["Patient ID", "Side", "GT"])
 		df["Patient ID"] = df["Patient ID"].astype(int).astype(str).str.strip()
 		df["Side"] = df["Side"].astype(str).str.strip()
 		df["GT"] = pd.to_numeric(df["GT"], errors="coerce").astype("Int64")
 		df = df.dropna(subset=["GT"])
-		df["GT"] = df["GT"].astype(int)
+		df["GT"] = (df["GT"].astype(int)<1).astype(int)
+		df["PatientSide"] = df.apply(lambda row: f"p{row['Patient ID']}_{row['Side']}", axis=1)
 
+		grouped_gt = df.groupby("PatientSide")["GT"].agg(lambda x: x.mode()[0])
+		case_ids = grouped_gt.index.tolist()
+		case_labels = grouped_gt.values.tolist()
+
+		# === Step 3: Stratified split by (Patient, Side) ===
+		skf = StratifiedKFold(n_splits=k_fold, shuffle=True, random_state=42)
+		splits = list(skf.split(case_ids, case_labels))
+		train_indices, val_indices = splits[fold]
+		train_cases = [case_ids[i] for i in train_indices]
+		val_cases = [case_ids[i] for i in val_indices]
+
+		if phase == "train":
+			selected_cases = set(train_cases)
+			self.transform = train_transform
+		else:
+			selected_cases = set(val_cases)
+			self.transform = val_transform
+
+		# === Step 4: Label map for quick access ===
 		label_map = {
-			("p" + row["Patient ID"], row["Side"]): row["GT"]
+			f"p{row['Patient ID']}_{row['Side']}": row["GT"]
 			for _, row in df.iterrows()
 		}
 
-		# Step 2: Get all patient IDs and apply k-fold
-		all_patient_ids = sorted([
-			d for d in os.listdir(root_dir)
-			if os.path.isdir(os.path.join(root_dir, d))
-		])
-
-		kf = KFold(n_splits=k_fold, shuffle=True, random_state=42)
-		splits = list(kf.split(all_patient_ids))
-		train_idx, val_idx = splits[fold]
-
-		if phase == 'train':
-			selected_patient_ids = [all_patient_ids[i] for i in train_idx]
-			self.transform = train_transform 
-		else:
-			selected_patient_ids = [all_patient_ids[i] for i in val_idx]
-			self.transform = val_transform 
-
-		# Step 3: Gather all samples
+		# === Step 5: Scan filesystem and collect data ===
 		all_samples = []
-		for patient_id in selected_patient_ids:
+
+		for patient_id in os.listdir(root_dir):
 			patient_path = os.path.join(root_dir, patient_id)
+			if not os.path.isdir(patient_path):
+				continue
+
 			for side in os.listdir(patient_path):
 				side_path = os.path.join(patient_path, side)
 				if not os.path.isdir(side_path):
 					continue
 
-				key = (patient_id, side)
-				if key not in label_map:
+				case_key = f"{patient_id}_{side}"
+				if case_key not in selected_cases:
 					continue
 
-				label = label_map[key]
-				label = 1 if label == 0 else 0  # Optional: relabel if needed
+				if case_key not in label_map:
+					continue  # skip missing labels
+
+				label = label_map[case_key]
 
 				for fname in os.listdir(side_path):
-					# Inside: for fname in os.listdir(side_path):
 					full_path = os.path.join(side_path, fname)
-					if os.path.exists(full_path) and fname.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tif')):
-						if radiomics_dir:
-							# Construct relative path like: p10/R/image.jpg
-							relative_path = os.path.relpath(full_path, start=self.root_dir).replace("\\", "/")
+					if not os.path.isfile(full_path):
+						continue
+					if not fname.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tif')):
+						continue
 
-							if relative_path in radiomics_db.index:
-								radiomics = radiomics_db.loc[relative_path].values.astype(float)
-								all_samples.append((full_path, label, radiomics))
-							else:
-								# Optional: try loose matching or log the missing ones
-								print(f"⚠️ Radiomics not found for {relative_path}")
-								continue
+					if radiomics_dir:
+						relative_path = os.path.relpath(full_path, start=self.root_dir).replace("\\", "/")
+						if relative_path in radiomics_db.index:
+							radiomics = radiomics_db.loc[relative_path].values.astype(float)
+							all_samples.append((full_path, label, radiomics))
 						else:
-							all_samples.append((full_path, label))
+							print(f"⚠️ Radiomics not found for {relative_path}")
+							continue
+					else:
+						all_samples.append((full_path, label))
 
 		self.data = all_samples
-			
+				
 	def __len__(self):
 		return len(self.data)
 	
@@ -213,7 +225,7 @@ class Classificaiton_Dataset(Dataset):
 	
 if __name__ == '__main__':
 	#Classificaiton_Dataset(phase = 'train', img_transform= transform_img)
-	train_dataset = Classificaiton_Dataset(phase = 'test')
+	train_dataset = Classificaiton_Dataset(phase = 'train')
 	print("train dataset size: ", len(train_dataset))
 	#print("test dataset size: ", len(train_dataset))
 	#print("data sample: ", train_dataset.data) 

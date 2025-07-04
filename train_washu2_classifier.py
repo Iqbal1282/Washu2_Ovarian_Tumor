@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from utils import plot_roc_curve
 import numpy as np
 
-max_epochs = 200
+max_epochs = 250
 min_epochs = 1
 batch_size = 16
 check_val_every_n_epoch = 3
@@ -42,7 +42,7 @@ all_aucs = []
 
 for fold in range(k_fold):
     # Initialize WandB Logger
-    run_name = f'F_{fold}_"{commit_log}"_commit_"{commit_string}"_{datetime.now()}'
+    run_name = f'F{fold}_"{commit_log}"_"{commit_string}"_{datetime.now()}'
     wandb_logger = WandbLogger(
             log_model=False, project="Ovarian_Tumor_WashU2_Reviewed", name=run_name
         )
@@ -51,7 +51,7 @@ for fold in range(k_fold):
     trainDataset = Classificaiton_Dataset(phase = 'train', k_fold = k_fold, fold = fold, radiomics_dir= False) # r"Only_radiomics_based_classification\radiomics_features_washu2_p1_143_with_labels_sdf4_nd_normseg.csv")
     valDataset = Classificaiton_Dataset(phase = 'val', k_fold = k_fold, fold = fold, radiomics_dir= False) #r"Only_radiomics_based_classification\radiomics_features_washu2_p1_143_with_labels_sdf4_nd_normseg.csv")
     #testDataset =  Classificaiton_Dataset_test(phase = 'test', k_fold = k_fold, fold = fold, radiomics_dir= r"Only_radiomics_based_classification\radiomics_features_washu2_p1_143_with_labels_sdf4_nd_normseg.csv")
-    testDataset = Classificaiton_Dataset(phase = 'val', k_fold = k_fold, fold = fold, radiomics_dir= False) #r"Only_radiomics_based_classification\radiomics_features_washu2_p1_143_with_labels_sdf4_nd_normseg.csv")
+    testDataset = Classificaiton_Dataset(phase = 'val', k_fold = k_fold, fold = 0, radiomics_dir= False) #r"Only_radiomics_based_classification\radiomics_features_washu2_p1_143_with_labels_sdf4_nd_normseg.csv")
     train_loader = DataLoader(
                 trainDataset,
                 batch_size=batch_size,
@@ -107,10 +107,10 @@ for fold in range(k_fold):
     trainer.fit(model, train_loader, val_loader)
 
 
-    # # Get predictions on the test set for ROC curve
-    # # Get predictions on the test set
-    # y_true, y_probs = model.get_predictions_on_loader(test_loader)
-    # Load best model from checkpoint after training
+    # Get predictions on the test set for ROC curve
+    # Get predictions on the test set
+    y_true, y_probs = model.get_predictions_on_loader(test_loader)
+    #Load best model from checkpoint after training
     best_model_path = checkpoint_callback.best_model_path
     best_model = BinaryClassification.load_from_checkpoint(
         best_model_path,
