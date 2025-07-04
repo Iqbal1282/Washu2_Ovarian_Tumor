@@ -41,7 +41,7 @@ all_tprs = []
 all_aucs = []
 
 project_title = "Ovarian Cancer Classification"
-Experiment_Group = f"Radiomics_False_both_pretrained_encoder_Exp_{commit_log}"
+Experiment_Group = f"Radiomics_False_single_pretrained_encoder_Exp0_{commit_log}"
 train_config = {
         "k_fold": k_fold,
         "batch_size": batch_size,
@@ -50,7 +50,7 @@ train_config = {
         "input_dim": 64,
         "loss_fn": "BCEWithLogits",
         "model_type": "BinaryClassification",
-        "info": "both encoders are pretrained"
+        "info": "single pretrained encoder classifier"
     }
 
 for fold in range(k_fold):
