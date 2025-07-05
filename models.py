@@ -232,7 +232,7 @@ class BinaryClassification(pl.LightningModule):
         self.boundary_encoder = MyEncoder()
         self.center_encoder = MyEncoder()
         
-        self.output_size = 5 
+        self.output_size = 1
         if radiomics:  
             self.linear_radiomics = FCNetwork(input_size= radiomics_dim, hidden_sizes=[128, 64, 64], output_size= 32)  
             self.linear_radiomics_tail = FCNetwork(input_size= 32, hidden_sizes=[32, 32, 16], output_size= self.output_size)  
@@ -244,7 +244,7 @@ class BinaryClassification(pl.LightningModule):
             self.linear_boundary = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
             self.linear_center = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes, output_size= self.output_size)  
 
-        self.final_layer = FCNetwork(input_size=4*5, hidden_sizes=[20, 12, 5], output_size= 1)
+        self.final_layer = FCNetwork(input_size= 4, hidden_sizes=[8, 12, 5], output_size= 1)
 
 
         self.loss_fn = nn.BCEWithLogitsLoss()  # More stable than BCELoss
@@ -300,8 +300,9 @@ class BinaryClassification(pl.LightningModule):
     def _common_step(self, batch, batch_idx):
         if len(batch) == 2: 
             x, y = batch 
-            scores = self.forward(x)  
-            loss = self.loss_fn(scores, y.float()) 
+            scores, scores_tail = self.forward(x)  
+            loss = self.loss_fn(scores, y.float()) + self.loss_fn(scores_tail[0], y.float()) + \
+                        self.loss_fn(scores_tail[1], y.float()) + self.loss_fn(scores_tail[2], y.float()) + self.loss_fn(scores_tail[3], y.float())
         else: 
             x, x2_rad,  y = batch
             scores, scores2 = self.forward(x, x2_radiomics=x2_rad)  
@@ -332,11 +333,12 @@ class BinaryClassification(pl.LightningModule):
             x = torch.cat((x, x2_radiomics), dim=1)
             return self.linear(x).squeeze(), (self.linear_trainable(x2.reshape(x.shape[0], -1)).squeeze() , self.linear_radiomics_tail(x2_radiomics).squeeze())
         else:   
-            x =  torch.cat([self.linear(x), self.linear_trainable(x2.reshape(x.shape[0], -1)), \
-                        self.linear_boundary(x_boundary.reshape(x.shape[0], -1)), \
-                        self.linear_center(x_center.reshape(x.shape[0], -1))], dim = 1)  
-            
-        return self.final_layer(x).squeeze()
+            x1 = self.linear(x)
+            x2 = self.linear_trainable(x2.reshape(x.shape[0], -1))
+            x3 = self.linear_boundary(x_boundary.reshape(x.shape[0], -1))
+            x4 = self.linear_center(x_center.reshape(x.shape[0], -1)) 
+            x =  torch.cat([x1, x2, x3 ,x4], dim = -1)  
+            return self.final_layer(x).squeeze(), (x1.squeeze(), x2.squeeze(), x3.squeeze(), x4.squeeze())
 
 
 
@@ -431,7 +433,7 @@ class BinaryClassification(pl.LightningModule):
                     x, y = batch
                     x = x.to(self.device)
                     y = y.to(self.device)
-                    scores= self.forward(x) #, radio)
+                    scores, _ = self.forward(x) #, radio)
                 else: 
                     x, radio, y = batch
                     x = x.to(self.device)
