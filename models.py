@@ -357,9 +357,20 @@ class BinaryClassification(pl.LightningModule):
         self.log("test/weighted_accuracy", self.compute_weighted_accuracy(), prog_bar=True)
         self.reset_weighted_accuracy()
 
+    # def configure_optimizers(self):
+    #     optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+    #     return optimizer
+    
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-        return optimizer
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=self.hparams.weight_decay)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5, verbose=True)
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                "monitor": "validation/loss",  # or "validation/combined_score"
+            }
+        }
     
     def get_predictions_on_loader(self, dataloader):
         self.eval()
