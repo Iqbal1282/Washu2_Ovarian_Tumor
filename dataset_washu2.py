@@ -75,11 +75,21 @@ train_transform = A.Compose([
 						ratio=(0.95, 1.05),
 						size=(256, 256),
 						),
+
     A.HorizontalFlip(p=0.5),
     A.VerticalFlip(p=0.5),
     A.RandomRotate90(p=0.5),
+
+	A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.05, rotate_limit=10, border_mode=0, value=0, p=0.5), 
     A.ElasticTransform(p=0.5),
     A.GridDistortion(p=0.2),
+
+	#A.GaussNoise(var_limit=(0.2, 0.44), p=1),
+    A.RandomBrightnessContrast(brightness_limit=0.01, contrast_limit=0.01, p=1),
+    A.CLAHE(clip_limit=1., tile_grid_size=(8, 8), p=1),
+    #A.Downscale(scale_min=0.25, scale_max=0.25, p=0.5),
+	
+
     A.Normalize(mean=(0.5,), std=(0.5,)),  # Adjust if using RGB
     ToTensorV2()
 ])
@@ -229,7 +239,7 @@ class Classificaiton_Dataset(Dataset):
 	
 if __name__ == '__main__':
 	#Classificaiton_Dataset(phase = 'train', img_transform= transform_img)
-	train_dataset = Classificaiton_Dataset(phase = 'val', k_fold=10, fold= 2)
+	train_dataset = Classificaiton_Dataset(phase = 'train', k_fold=10, fold= 2)
 	print("train dataset size: ", len(train_dataset))
 	#print("test dataset size: ", len(train_dataset))
 	#print("data sample: ", train_dataset.data) 
@@ -240,17 +250,17 @@ if __name__ == '__main__':
 	# print(train_dataset[1][1].max())
 	# print(len(train_dataset))
 
-	# for i in range(5):
-	# 	if train_dataset.radiomics_dir: 
-	# 		img, radiomics, label = train_dataset[i]
-	# 	else: 
-	# 		img, label = train_dataset[i]
-	# 	#print("radiomics: ", radiomics.shape)
-	# 	print(label)
-	# 	plt.figure()
-	# 	#plt.subplot(1,3,1)
-	# 	plt.imshow(img[0], cmap= 'gray')
-	# 	plt.show()
+	for i in range(5):
+		if train_dataset.radiomics_dir: 
+			img, radiomics, label = train_dataset[i]
+		else: 
+			img, label = train_dataset[i]
+		#print("radiomics: ", radiomics.shape)
+		print(label)
+		plt.figure()
+		#plt.subplot(1,3,1)
+		plt.imshow(img[0], cmap= 'gray')
+		plt.show()
 
 
 	Malignant_count = 0 
