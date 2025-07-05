@@ -41,7 +41,7 @@ all_tprs = []
 all_aucs = []
 
 project_title = "Ovarian Cancer Classification"
-Experiment_Group = f"Radiomics_False_single_pretrained_encoder_Exp0_{commit_log}"
+Experiment_Group = f"Radiomics_False_single_pretrained_encoder_testset_Exp0_{commit_log}"
 train_config = {
         "k_fold": k_fold,
         "batch_size": batch_size,
@@ -50,7 +50,8 @@ train_config = {
         "input_dim": 64,
         "loss_fn": "BCEWithLogits",
         "model_type": "BinaryClassification",
-        "info": "single pretrained encoder classifier"
+        "info": "single pretrained encoder classifier",
+        "info2": "patient less than 21 are considered in testset"
     }
 
 for fold in range(k_fold):
@@ -75,6 +76,8 @@ for fold in range(k_fold):
     valDataset = Classificaiton_Dataset(phase = 'val', k_fold = k_fold, fold = fold, radiomics_dir= False) #r"Only_radiomics_based_classification\radiomics_features_washu2_p1_143_with_labels_sdf4_nd_normseg.csv")
     #testDataset =  Classificaiton_Dataset_test(phase = 'test', k_fold = k_fold, fold = fold, radiomics_dir= r"Only_radiomics_based_classification\radiomics_features_washu2_p1_143_with_labels_sdf4_nd_normseg.csv")
     #testDataset = Classificaiton_Dataset(phase = 'val', k_fold = k_fold, fold = 0, radiomics_dir= False) #r"Only_radiomics_based_classification\radiomics_features_washu2_p1_143_with_labels_sdf4_nd_normseg.csv")
+    testDataset = Classificaiton_Dataset(phase = 'test', radiomics_dir= False)
+
     train_loader = DataLoader(
                 trainDataset,
                 batch_size=batch_size,
@@ -93,14 +96,14 @@ for fold in range(k_fold):
                 #persistent_workers=True,
             )
     
-    # test_loader = DataLoader(
-    #             testDataset,
-    #             batch_size=batch_size,
-    #             shuffle=False,
-    #             num_workers=num_workers,
-    #             drop_last= False,
-    #             #persistent_workers=True,
-    #         )
+    test_loader = DataLoader(
+                testDataset,
+                batch_size=batch_size,
+                shuffle=False,
+                num_workers=num_workers,
+                drop_last= False,
+                #persistent_workers=True,
+            )
 
 
     # Initialize Callbacks
@@ -145,7 +148,7 @@ for fold in range(k_fold):
     best_model.freeze()
 
     # Get predictions using the best model
-    y_true, y_probs = best_model.get_predictions_on_loader(val_loader)
+    y_true, y_probs = best_model.get_predictions_on_loader(test_loader)
 
     # Plot and log the ROC for this fold
     fpr, tpr, roc_auc = plot_roc_curve(y_true, y_probs, fold_idx=fold + 1, wandb_logger=wandb_logger)
