@@ -296,13 +296,14 @@ class BinaryClassification(pl.LightningModule):
     def _common_step(self, batch, batch_idx):
         if len(batch) == 2: 
             x, y = batch 
-            scores, scores2, scores3, scores4 = self.forward(x)  
-            loss = self.loss_fn(scores, y.float()) + self.loss_fn(scores2, y.float()) + \
+            scores1, scores2, scores3, scores4 = self.forward(x)  
+            loss = self.loss_fn(scores1, y.float()) + self.loss_fn(scores2, y.float()) + \
                             self.loss_fn(scores3, y.float()) + self.loss_fn(scores4, y.float())
         else: 
             x, x2_rad,  y = batch
             scores, scores2 = self.forward(x, x2_radiomics=x2_rad)  
             loss = self.loss_fn(scores, y.float()) + self.loss_fn(scores2[0], y.float()) + self.loss_fn(scores2[1], y.float())  # Ensure labels are float for BCEWithLogitsLoss
+        scores = torch.median(torch.stack([scores1, scores2, scores3, scores4], dim=0), dim=0).values
         return loss, scores, y, x 
     
     def normalize_sdf(self, sdf_image):
@@ -330,8 +331,8 @@ class BinaryClassification(pl.LightningModule):
             return self.linear(x).squeeze(), (self.linear_trainable(x2.reshape(x.shape[0], -1)).squeeze() , self.linear_radiomics_tail(x2_radiomics).squeeze())
         else:   
             return self.linear(x).squeeze(), self.linear_trainable(x2.reshape(x.shape[0], -1)).squeeze(), \
-                        self.linear_boundary(x_boundary.reshape(x.shape[0], -1)), \
-                        self.linear_center(x_center.reshape(x.shape[0], -1))
+                        self.linear_boundary(x_boundary.reshape(x.shape[0], -1)).squeeze(), \
+                        self.linear_center(x_center.reshape(x.shape[0], -1)).squeeze()
         
 
     def training_step(self, batch, batch_idx):
