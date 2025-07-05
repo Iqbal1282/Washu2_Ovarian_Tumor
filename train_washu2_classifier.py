@@ -23,7 +23,7 @@ min_epochs = 1
 batch_size = 16
 check_val_every_n_epoch = 3
 num_workers = 0
-k_fold = 5
+k_fold = 10
 
 try: 
     # Get the latest Git commit message
@@ -41,7 +41,7 @@ all_tprs = []
 all_aucs = []
 
 project_title = "Ovarian Cancer Classification"
-Experiment_Group = f"Radiomics_False_single_pretrained_encoder_testset_Exp0_{commit_log}"
+Experiment_Group = f"Radiomics_False_single_pretrained_encoder_testset_Exp3_{commit_log}"
 train_config = {
         "k_fold": k_fold,
         "batch_size": batch_size,

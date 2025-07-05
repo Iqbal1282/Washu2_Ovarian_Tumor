@@ -78,7 +78,7 @@ train_transform = A.Compose([
     A.HorizontalFlip(p=0.5),
     A.VerticalFlip(p=0.5),
     A.RandomRotate90(p=0.5),
-    A.ElasticTransform(p=0.2),
+    A.ElasticTransform(p=0.5),
     A.GridDistortion(p=0.2),
     A.Normalize(mean=(0.5,), std=(0.5,)),  # Adjust if using RGB
     ToTensorV2()
@@ -95,110 +95,6 @@ val_transform = A.Compose([
 
  # This dataset loader will be used for experiment with single image based (MR1 or MR2) model , where model is encoder(narrow) + fc regression model   
 class Classificaiton_Dataset(Dataset):
-	# def __init__(
-	# 	self,
-	# 	root_dir=r"data\Ovarian_Reviewed_Data",
-	# 	response_dir=r"data\PAT_imaging_record.xlsx",
-	# 	radiomics_dir=  False, #r"Only_radiomics_based_classification\radiomics_features_washu2_p1_143_with_labels_sdf3_nd_normseg.csv", #r"Radiomics_feature_extraction_nd_seg\radiomics_features_washu2.csv",
-	# 	phase="train",
-	# 	k_fold=5,
-	# 	fold=0,
-	# ):
-	# 	self.root_dir = root_dir
-	# 	self.phase = phase
-	# 	self.radiomics_dir = radiomics_dir
-
-	# 	# === Step 1: Load radiomics features (if provided) ===
-	# 	if radiomics_dir:
-	# 		radiomics_db = pd.read_csv(radiomics_dir)
-	# 		print("Radiomics features shape: ", radiomics_db.shape)
-
-	# 		radiomics_db['ImagePath'] = radiomics_db['ImagePath'].apply(
-	# 			lambda p: os.path.normpath(p).replace("\\", "/").split("Images/")[-1].replace("Patient_", "p")
-	# 		)
-	# 		radiomics_db = radiomics_db.set_index("ImagePath")
-	# 		radiomics_db = radiomics_db.drop(columns=["PatientID", "Side", "GT", "ImagePath", "Patient ID"], errors='ignore')
-
-	# 		scaler = StandardScaler()
-	# 		scaled_values = scaler.fit_transform(radiomics_db.values)
-	# 		radiomics_db.loc[:, :] = scaled_values
-
-	# 	# === Step 2: Load Excel response sheet ===
-	# 	df = pd.read_excel(response_dir, sheet_name="ROI STATS V4 (3)")
-	# 	df = df.dropna(subset=["Patient ID", "Side", "GT"])
-	# 	df["Patient ID"] = df["Patient ID"].astype(int).astype(str).str.strip()
-	# 	df["Side"] = df["Side"].astype(str).str.strip()
-	# 	df["GT"] = pd.to_numeric(df["GT"], errors="coerce").astype("Int64")
-	# 	df = df.dropna(subset=["GT"])
-	# 	df["GT"] = (df["GT"].astype(int)<1).astype(int)
-	# 	df["PatientSide"] = df.apply(lambda row: f"p{row['Patient ID']}_{row['Side']}", axis=1)
-
-	# 	grouped_gt = df.groupby("PatientSide")["GT"].agg(lambda x: x.mode()[0])
-	# 	case_ids = grouped_gt.index.tolist()
-	# 	case_labels = grouped_gt.values.tolist()
-
-	# 	# === Step 3: Stratified split by (Patient, Side) ===
-	# 	skf = StratifiedKFold(n_splits=k_fold, shuffle=True, random_state=42)
-	# 	splits = list(skf.split(case_ids, case_labels))
-	# 	train_indices, val_indices = splits[fold]
-	# 	train_cases = [case_ids[i] for i in train_indices]
-	# 	val_cases = [case_ids[i] for i in val_indices]
-
-	# 	if phase == "train":
-	# 		selected_cases = set(train_cases)
-	# 		self.transform = train_transform
-	# 	else:
-	# 		selected_cases = set(val_cases)
-	# 		self.transform = val_transform
-
-	# 	# === Step 4: Label map for quick access ===
-	# 	label_map = {
-	# 		f"p{row['Patient ID']}_{row['Side']}": row["GT"]
-	# 		for _, row in df.iterrows()
-	# 	}
-
-	# 	# === Step 5: Scan filesystem and collect data ===
-	# 	all_samples = []
-
-	# 	for patient_id in os.listdir(root_dir):
-	# 		patient_path = os.path.join(root_dir, patient_id)
-	# 		if not os.path.isdir(patient_path):
-	# 			continue
-
-	# 		for side in os.listdir(patient_path):
-	# 			side_path = os.path.join(patient_path, side)
-	# 			if not os.path.isdir(side_path):
-	# 				continue
-
-	# 			case_key = f"{patient_id}_{side}"
-	# 			if case_key not in selected_cases:
-	# 				continue
-
-	# 			if case_key not in label_map:
-	# 				continue  # skip missing labels
-
-	# 			label = label_map[case_key]
-
-	# 			for fname in os.listdir(side_path):
-	# 				full_path = os.path.join(side_path, fname)
-	# 				if not os.path.isfile(full_path):
-	# 					continue
-	# 				if not fname.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tif')):
-	# 					continue
-
-	# 				if radiomics_dir:
-	# 					relative_path = os.path.relpath(full_path, start=self.root_dir).replace("\\", "/")
-	# 					if relative_path in radiomics_db.index:
-	# 						radiomics = radiomics_db.loc[relative_path].values.astype(float)
-	# 						all_samples.append((full_path, label, radiomics))
-	# 					else:
-	# 						print(f"⚠️ Radiomics not found for {relative_path}")
-	# 						continue
-	# 				else:
-	# 					all_samples.append((full_path, label))
-
-	# 	self.data = all_samples
-
 	def __init__(
 				self,
 				root_dir=r"data/Ovarian_Reviewed_Data",
@@ -333,7 +229,7 @@ class Classificaiton_Dataset(Dataset):
 	
 if __name__ == '__main__':
 	#Classificaiton_Dataset(phase = 'train', img_transform= transform_img)
-	train_dataset = Classificaiton_Dataset(phase = 'test')
+	train_dataset = Classificaiton_Dataset(phase = 'val', k_fold=10, fold= 2)
 	print("train dataset size: ", len(train_dataset))
 	#print("test dataset size: ", len(train_dataset))
 	#print("data sample: ", train_dataset.data) 
@@ -344,17 +240,17 @@ if __name__ == '__main__':
 	# print(train_dataset[1][1].max())
 	# print(len(train_dataset))
 
-	for i in range(10):
-		if train_dataset.radiomics_dir: 
-			img, radiomics, label = train_dataset[i]
-		else: 
-			img, label = train_dataset[i]
-		#print("radiomics: ", radiomics.shape)
-		print(label)
-		plt.figure()
-		#plt.subplot(1,3,1)
-		plt.imshow(img[0], cmap= 'gray')
-		plt.show()
+	# for i in range(5):
+	# 	if train_dataset.radiomics_dir: 
+	# 		img, radiomics, label = train_dataset[i]
+	# 	else: 
+	# 		img, label = train_dataset[i]
+	# 	#print("radiomics: ", radiomics.shape)
+	# 	print(label)
+	# 	plt.figure()
+	# 	#plt.subplot(1,3,1)
+	# 	plt.imshow(img[0], cmap= 'gray')
+	# 	plt.show()
 
 
 	Malignant_count = 0 

@@ -195,7 +195,7 @@ class BinaryClassification(pl.LightningModule):
         encoder = segmodel.encode 
         encoder.to(device = "cpu")
         self.encoder = encoder
-        self.encoder_trainable = Compress_Segmentor.load_from_checkpoint(encoder_weight_path, strict=True).encode
+        self.encoder_trainable = MyEncoder() #Compress_Segmentor.load_from_checkpoint(encoder_weight_path, strict=True).encode
 
         # **Freeze the encoder weights**
         for param in self.encoder.parameters():
@@ -276,7 +276,7 @@ class BinaryClassification(pl.LightningModule):
 
     def forward(self, x, x2_radiomics=None):    
         x1 = self.encoder(x)
-        x2 = self.encoder_trainable(x)*0
+        x2 = self.encoder_trainable(x)
         
         x = torch.cat((x1, x2), dim=1)  # Concatenate the outputs from both encoders
         x = x.reshape(x.shape[0], -1)
