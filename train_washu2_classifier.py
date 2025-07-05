@@ -50,7 +50,7 @@ train_config = {
         "input_dim": 64,
         "loss_fn": "BCEWithLogits",
         "model_type": "BinaryClassification",
-        "info": "Two encoder classifier",
+        "info": "Two encoder both concated at feature level classifier",
         "info2": "patient greater than 120 are considered in testset"
     }
 
