@@ -341,9 +341,14 @@ class BinaryClassification(pl.LightningModule):
         self.reset_weighted_accuracy()
 
     def on_validation_epoch_end(self):
-        self.log("validation/accuracy", self.accuracy_metric.compute(), prog_bar=True)
-        self.log("validation/auc", self.auc_metric.compute(), prog_bar=True)
-        self.log("validation/weighted_accuracy", self.compute_weighted_accuracy(), prog_bar=True)
+        acc = self.accuracy_metric.compute()
+        auc =  self.auc_metric.compute()
+        w_acc =  self.compute_weighted_accuracy()
+        combined_score =  0.3 * w_acc + 0.3 * acc +  0.4 * auc 
+        self.log("validation/accuracy", acc, prog_bar=True)
+        self.log("validation/auc", auc, prog_bar=True)
+        self.log("validation/weighted_accuracy", w_acc, prog_bar=True)
+        self.log("validation/combined_score", combined_score, prog_bar=True)
         self.reset_weighted_accuracy()
 
     def on_test_epoch_end(self):

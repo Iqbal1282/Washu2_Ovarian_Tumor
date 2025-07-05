@@ -109,7 +109,7 @@ for fold in range(k_fold):
     # Initialize Callbacks
     early_stopping = EarlyStopping(monitor="validation/loss", patience=100, mode="min")
     checkpoint_callback = ModelCheckpoint(
-            monitor="validation/auc",
+            monitor="validation/combined_score",
             mode="max",
             dirpath=f"checkpoints/washu2_classification/{commit_log}/{fold}",
             filename="best-checkpoint-{epoch:02d}-{validation/auc:.4f}",
