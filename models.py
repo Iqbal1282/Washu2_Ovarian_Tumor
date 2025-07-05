@@ -272,7 +272,7 @@ class BinaryClassification(pl.LightningModule):
             x, x2_rad,  y = batch
             scores, scores2 = self.forward(x, x2_radiomics=x2_rad)  
             loss = self.loss_fn(scores, y.float()) + self.loss_fn(scores2[0], y.float()) + self.loss_fn(scores2[1], y.float())  # Ensure labels are float for BCEWithLogitsLoss
-        return loss, scores, y, x 
+        return loss, scores*0.6+scores2*0.4, y, x 
 
     def forward(self, x, x2_radiomics=None):    
         x1 = self.encoder(x)
@@ -356,10 +356,6 @@ class BinaryClassification(pl.LightningModule):
         self.log("test/auc", self.auc_metric.compute(), prog_bar=True)
         self.log("test/weighted_accuracy", self.compute_weighted_accuracy(), prog_bar=True)
         self.reset_weighted_accuracy()
-
-    # def configure_optimizers(self):
-    #     optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-    #     return optimizer
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=self.hparams.weight_decay)
@@ -383,7 +379,8 @@ class BinaryClassification(pl.LightningModule):
                     x, y = batch
                     x = x.to(self.device)
                     y = y.to(self.device)
-                    scores, _ = self.forward(x) #, radio)
+                    scores1, scores2 = self.forward(x) #, radio)
+                    scores = scores1*0.6 + scores2*0.4 
                 else: 
                     x, radio, y = batch
                     x = x.to(self.device)

@@ -15,7 +15,7 @@ def plot_roc_curve(y_true, y_probs, fold_idx=None, wandb_logger=None):
     plt.legend(loc='lower right')
     plt.grid(True)
 
-    img_path = f'roc_curve_fold_{fold_idx}.png'
+    img_path = f'plots/roc_curve_fold_{fold_idx}.png'
     plt.savefig(img_path)
     plt.close()
 

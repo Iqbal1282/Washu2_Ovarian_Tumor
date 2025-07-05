@@ -41,7 +41,7 @@ all_tprs = []
 all_aucs = []
 
 project_title = "Ovarian Cancer Classification"
-Experiment_Group = f"Radiomics_False_single_pretrained_encoder_testset_Exp3_{commit_log}"
+Experiment_Group = f"Radiomics_False_avg_encoderscores_testset_Exp4_{commit_log}"
 train_config = {
         "k_fold": k_fold,
         "batch_size": batch_size,
@@ -189,7 +189,7 @@ plt.title('ROC Curves Across All Folds')
 plt.legend(loc='lower right')
 plt.grid(True)
 
-final_img_path = 'roc_all_folds.png'
+final_img_path = 'plots/roc_all_folds.png'
 plt.savefig(final_img_path)
 plt.close()
 
