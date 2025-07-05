@@ -278,7 +278,7 @@ class BinaryClassification(pl.LightningModule):
         x1 = self.encoder(x)
         x2 = self.encoder_trainable(x)
         
-        x = torch.cat((x1, x2), dim=1)  # Concatenate the outputs from both encoders
+        x = torch.cat((x1, x2.detach()), dim=1)  # Concatenate the outputs from both encoders
         x = x.reshape(x.shape[0], -1)
 
         if x2_radiomics is not None:
