@@ -368,7 +368,7 @@ class BinaryClassification(pl.LightningModule):
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": scheduler,
-                "monitor": "validation/loss",  # or "validation/combined_score"
+                "monitor": "train/loss",  # or "validation/combined_score"
             }
         }
     

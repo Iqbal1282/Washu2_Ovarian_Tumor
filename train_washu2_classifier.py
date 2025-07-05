@@ -51,7 +51,7 @@ train_config = {
         "loss_fn": "BCEWithLogits",
         "model_type": "BinaryClassification",
         "info": "single pretrained encoder classifier",
-        "info2": "patient less than 21 are considered in testset"
+        "info2": "patient greater than 120 are considered in testset"
     }
 
 for fold in range(k_fold):
