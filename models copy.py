@@ -222,15 +222,10 @@ class BinaryClassification(pl.LightningModule):
         for param in self.encoder.parameters():
             param.requires_grad = False
 
-        self.sdf_model = SDFModel()
         sdf_model_path = "./checkpoints/deeplabv3/model_20250620_211018/epoch_16"
-        self.sdf_model.load_state_dict(torch.load(sdf_model_path))
+        model.load_state_dict(torch.load(model_path))
 
-        for param in self.sdf_model.parameters():
-            param.requires_grad = False 
 
-        self.boundary_encoder = MyEncoder()
-        self.center_encoder = MyEncoder()
         
         if radiomics:  
             self.linear_radiomics = FCNetwork(input_size= radiomics_dim, hidden_sizes=[128, 64, 64], output_size= 32)  
@@ -239,9 +234,8 @@ class BinaryClassification(pl.LightningModule):
             self.linear_trainable = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes2, output_size= self.output_size)  
         else:
             self.linear = FCNetwork(input_size= self.input_size*2, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
-            self.linear_trainable = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes2, output_size= self.output_size)   
-            self.linear_boundary = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
-            self.linear_center = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes, output_size= self.output_size)   
+            self.linear_trainable = FCNetwork(input_size= self.input_size*2, hidden_sizes=self.hidden_sizes2, output_size= self.output_size)   
+
 
         self.loss_fn = nn.BCEWithLogitsLoss()  # More stable than BCELoss
         self.accuracy_metric = BinaryAccuracy()  # Accuracy metric using TorchMetrics
@@ -296,43 +290,30 @@ class BinaryClassification(pl.LightningModule):
     def _common_step(self, batch, batch_idx):
         if len(batch) == 2: 
             x, y = batch 
-            scores, scores2, scores3, scores4 = self.forward(x)  
-            loss = self.loss_fn(scores, y.float()) + self.loss_fn(scores2, y.float()) + \
-                            self.loss_fn(scores3, y.float()) + self.loss_fn(scores4, y.float())
+            scores, scores2 = self.forward(x)  
+            loss = self.loss_fn(scores, y.float()) + self.loss_fn(scores2, y.float())
         else: 
             x, x2_rad,  y = batch
             scores, scores2 = self.forward(x, x2_radiomics=x2_rad)  
             loss = self.loss_fn(scores, y.float()) + self.loss_fn(scores2[0], y.float()) + self.loss_fn(scores2[1], y.float())  # Ensure labels are float for BCEWithLogitsLoss
         return loss, scores, y, x 
-    
-    def normalize_sdf(self, sdf_image):
-        sdf_image = (sdf_image - sdf_image.min())/(sdf_image.max() - sdf_image.min() + 1e-8)
-        sdf_image = sdf_image*2 -1 
-        return sdf_image
 
     def forward(self, x, x2_radiomics=None):    
         x1 = self.encoder(x)
         x2 = self.encoder_trainable(x)
-
-        x_sdf = self.sdf_model(x)
-        x_sdf = self.normalize_sdf(x_sdf)
-
-        x_boundary = self.boundary_encoder(x*(x_sdf.abs()<.4))
-        x_center = self.center_encoder(x*(x_sdf<.3)) 
-
-
+        
         x = torch.cat((x1, x2.detach()), dim=1)  # Concatenate the outputs from both encoders
         x = x.reshape(x.shape[0], -1)
+
+        x2 = torch.cat((x1.detach(), x2), dim = 1)
+        x2 = x2.reshape(x2.shape[0], -1)
 
         if x2_radiomics is not None:
             x2_radiomics = self.linear_radiomics(x2_radiomics)
             x = torch.cat((x, x2_radiomics), dim=1)
             return self.linear(x).squeeze(), (self.linear_trainable(x2.reshape(x.shape[0], -1)).squeeze() , self.linear_radiomics_tail(x2_radiomics).squeeze())
         else:   
-            return self.linear(x).squeeze(), self.linear_trainable(x2.reshape(x.shape[0], -1)).squeeze(), \
-                        self.linear_boundary(x_boundary.reshape(x.shape[0], -1)), \
-                        self.linear_center(x_center.reshape(x.shape[0], -1))
-        
+            return self.linear(x).squeeze(), self.linear_trainable(x2.reshape(x.shape[0], -1)).squeeze()
 
     def training_step(self, batch, batch_idx):
         loss, scores, y, _ = self._common_step(batch, batch_idx)
@@ -425,9 +406,8 @@ class BinaryClassification(pl.LightningModule):
                     x, y = batch
                     x = x.to(self.device)
                     y = y.to(self.device)
-                    scores1, scores2, scores3, scores4 = self.forward(x) #, radio)
-                    scores = torch.stack([scores1, scores2, scores3, scores4], dim=0)  # shape: (4, ...)
-                    scores = torch.median(scores, dim=0).values  # get only the median values
+                    scores1, scores2 = self.forward(x) #, radio)
+                    scores = scores1 #*0.6 + scores2*0.4 
                 else: 
                     x, radio, y = batch
                     x = x.to(self.device)

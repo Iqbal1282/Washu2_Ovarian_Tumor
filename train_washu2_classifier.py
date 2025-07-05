@@ -41,7 +41,7 @@ all_tprs = []
 all_aucs = []
 
 project_title = "Ovarian Cancer Classification"
-Experiment_Group = f"Radiomics_False_avg_encoderscores_testset_Exp4_{commit_log}"
+Experiment_Group = f"Radiomics_False_4_encoder_median_scores_testset_Exp5_{commit_log}"
 train_config = {
         "k_fold": k_fold,
         "batch_size": batch_size,
@@ -50,7 +50,7 @@ train_config = {
         "input_dim": 64,
         "loss_fn": "BCEWithLogits",
         "model_type": "BinaryClassification",
-        "info": "Two encoder both concated at feature level classifier",
+        "info": "Foun encoder median Score experiment",
         "info2": "patient greater than 120 are considered in testset"
     }
 

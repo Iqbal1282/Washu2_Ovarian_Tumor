@@ -257,6 +257,7 @@ if __name__ == '__main__':
 			img, label = train_dataset[i]
 		#print("radiomics: ", radiomics.shape)
 		print(label)
+		print("image max: ", img.max(), "image min: ", img.min())
 		plt.figure()
 		#plt.subplot(1,3,1)
 		plt.imshow(img[0], cmap= 'gray')
