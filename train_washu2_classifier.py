@@ -8,7 +8,7 @@ from torch import nn
 from torch.utils.data import DataLoader, random_split
 from torchvision import transforms, datasets
 from datetime import datetime
-from models_mybase import BinaryClassification
+from models2 import BinaryClassification
 from dataset_washu2 import Classificaiton_Dataset
 from dataset_washu2_p1_43 import Classificaiton_Dataset as Classificaiton_Dataset_test
 import subprocess

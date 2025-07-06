@@ -11,27 +11,6 @@ from torchmetrics.classification import MulticlassAccuracy, MulticlassAUROC
 
 from losses import * 
 
-
-import torch.nn as nn
-import segmentation_models_pytorch as smp
-
-class SDFModel(nn.Module):
-    def __init__(self):
-        super(SDFModel, self).__init__()
-        self.backbone = smp.DeepLabV3Plus(
-            encoder_name="resnet34",
-            encoder_weights="imagenet",
-            in_channels=1,
-            classes=1
-        )
-        self.activation = nn.Tanh()
-
-    def forward(self, x):
-        x = self.backbone(x)        # Output shape: (B, 1, H, W)
-        x = self.activation(x)      # Output in [-1, 1]
-        return x
-    
-
 class MyEncoder(nn.Module):
     def __init__(self):
         super().__init__()
@@ -207,7 +186,31 @@ class BinaryClassification(pl.LightningModule):
     def __init__(self, input_dim=8192*2, num_classes = 1,  lr=1e-3, weight_decay=1e-5, encoder_weight_path = None, radiomics = False, radiomics_dim = 463):
         super().__init__()
         
-        self.model = None 
+        self.input_size = input_dim 
+        self.hidden_sizes = [512, 128, 64, 32]
+        self.hidden_sizes2 = [64, 32]
+        self.output_size = num_classes
+
+        segmodel = Compress_Segmentor.load_from_checkpoint(encoder_weight_path, strict=True)
+        encoder = segmodel.encode 
+        encoder.to(device = "cpu")
+        self.encoder = encoder
+        self.encoder_trainable = MyEncoder() #Compress_Segmentor.load_from_checkpoint(encoder_weight_path, strict=True).encode
+
+        # **Freeze the encoder weights**
+        for param in self.encoder.parameters():
+            param.requires_grad = False
+
+
+        
+        if radiomics:  
+            self.linear_radiomics = FCNetwork(input_size= radiomics_dim, hidden_sizes=[128, 64, 64], output_size= 32)  
+            self.linear_radiomics_tail = FCNetwork(input_size= 32, hidden_sizes=[32, 32, 16], output_size= self.output_size)  
+            self.linear = FCNetwork(input_size= self.input_size*2+32, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
+            self.linear_trainable = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes2, output_size= self.output_size)  
+        else:
+            self.linear = FCNetwork(input_size= self.input_size*2, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
+            self.linear_trainable = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes2, output_size= self.output_size)   
 
 
         self.loss_fn = nn.BCEWithLogitsLoss()  # More stable than BCELoss
@@ -263,8 +266,8 @@ class BinaryClassification(pl.LightningModule):
     def _common_step(self, batch, batch_idx):
         if len(batch) == 2: 
             x, y = batch 
-            scores = self.forward(x)  
-            loss = self.loss_fn(scores, y.float())
+            scores, scores2 = self.forward(x)  
+            loss = self.loss_fn(scores, y.float()) + self.loss_fn(scores2, y.float())
         else: 
             x, x2_rad,  y = batch
             scores, scores2 = self.forward(x, x2_radiomics=x2_rad)  
@@ -272,9 +275,18 @@ class BinaryClassification(pl.LightningModule):
         return loss, scores, y, x 
 
     def forward(self, x, x2_radiomics=None):    
-        x = self.model(x)
+        x1 = self.encoder(x)
+        x2 = self.encoder_trainable(x)
+        
+        x = torch.cat((x1, x2), dim=1)  # Concatenate the outputs from both encoders
+        x = x.reshape(x.shape[0], -1)
 
-        return x.squeeze()
+        if x2_radiomics is not None:
+            x2_radiomics = self.linear_radiomics(x2_radiomics)
+            x = torch.cat((x, x2_radiomics), dim=1)
+            return self.linear(x).squeeze(), (self.linear_trainable(x2.reshape(x.shape[0], -1)).squeeze() , self.linear_radiomics_tail(x2_radiomics).squeeze())
+        else:   
+            return self.linear(x).squeeze(), self.linear_trainable(x2.reshape(x.shape[0], -1)).squeeze()
 
     def training_step(self, batch, batch_idx):
         loss, scores, y, _ = self._common_step(batch, batch_idx)
@@ -344,6 +356,10 @@ class BinaryClassification(pl.LightningModule):
         self.log("test/auc", self.auc_metric.compute(), prog_bar=True)
         self.log("test/weighted_accuracy", self.compute_weighted_accuracy(), prog_bar=True)
         self.reset_weighted_accuracy()
+
+    # def configure_optimizers(self):
+    #     optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+    #     return optimizer
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=self.hparams.weight_decay)
@@ -367,7 +383,7 @@ class BinaryClassification(pl.LightningModule):
                     x, y = batch
                     x = x.to(self.device)
                     y = y.to(self.device)
-                    scores = self.forward(x) #, radio)
+                    scores, _ = self.forward(x) #, radio)
                 else: 
                     x, radio, y = batch
                     x = x.to(self.device)
