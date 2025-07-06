@@ -8,7 +8,7 @@ from torch import nn
 from torch.utils.data import DataLoader, random_split
 from torchvision import transforms, datasets
 from datetime import datetime
-from models import BinaryClassification
+from models_mybase import BinaryClassification
 from dataset_washu2 import Classificaiton_Dataset
 from dataset_washu2_p1_43 import Classificaiton_Dataset as Classificaiton_Dataset_test
 import subprocess
@@ -23,7 +23,7 @@ min_epochs = 1
 batch_size = 16
 check_val_every_n_epoch = 3
 num_workers = 0
-k_fold = 10
+k_fold = 5
 
 try: 
     # Get the latest Git commit message
@@ -41,7 +41,7 @@ all_tprs = []
 all_aucs = []
 
 project_title = "Ovarian Cancer Classification"
-Experiment_Group = f"Radiomics_False_4_encoder_hybridloss_Exp6_{commit_log}"
+Experiment_Group = f"Exp2:_mybase_imageonly_{commit_log}"
 train_config = {
         "k_fold": k_fold,
         "batch_size": batch_size,

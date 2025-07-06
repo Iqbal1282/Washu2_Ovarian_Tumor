@@ -221,12 +221,7 @@ class BinaryClassification(pl.LightningModule):
         # **Freeze the encoder weights**
         for param in self.encoder.parameters():
             param.requires_grad = False
-
-        sdf_model_path = "./checkpoints/deeplabv3/model_20250620_211018/epoch_16"
-        model.load_state_dict(torch.load(model_path))
-
-
-        
+    
         if radiomics:  
             self.linear_radiomics = FCNetwork(input_size= radiomics_dim, hidden_sizes=[128, 64, 64], output_size= 32)  
             self.linear_radiomics_tail = FCNetwork(input_size= 32, hidden_sizes=[32, 32, 16], output_size= self.output_size)  
@@ -234,7 +229,7 @@ class BinaryClassification(pl.LightningModule):
             self.linear_trainable = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes2, output_size= self.output_size)  
         else:
             self.linear = FCNetwork(input_size= self.input_size*2, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
-            self.linear_trainable = FCNetwork(input_size= self.input_size*2, hidden_sizes=self.hidden_sizes2, output_size= self.output_size)   
+            self.linear_trainable = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes2, output_size= self.output_size)   
 
 
         self.loss_fn = nn.BCEWithLogitsLoss()  # More stable than BCELoss
@@ -302,11 +297,8 @@ class BinaryClassification(pl.LightningModule):
         x1 = self.encoder(x)
         x2 = self.encoder_trainable(x)
         
-        x = torch.cat((x1, x2.detach()), dim=1)  # Concatenate the outputs from both encoders
+        x = torch.cat((x1, x2), dim=1)  # Concatenate the outputs from both encoders
         x = x.reshape(x.shape[0], -1)
-
-        x2 = torch.cat((x1.detach(), x2), dim = 1)
-        x2 = x2.reshape(x2.shape[0], -1)
 
         if x2_radiomics is not None:
             x2_radiomics = self.linear_radiomics(x2_radiomics)
