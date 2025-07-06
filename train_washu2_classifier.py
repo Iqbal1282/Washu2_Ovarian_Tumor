@@ -23,7 +23,7 @@ min_epochs = 1
 batch_size = 16
 check_val_every_n_epoch = 3
 num_workers = 0
-k_fold = 5
+k_fold = 10
 
 try: 
     # Get the latest Git commit message
