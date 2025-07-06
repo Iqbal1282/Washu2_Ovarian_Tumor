@@ -200,6 +200,27 @@ class FCNetwork(nn.Module):
     def forward(self, x):
         return self.model(x)
 
+
+class AsymmetricLoss(nn.Module):
+    def __init__(self, gamma_pos=0, gamma_neg=4, clip=0.05, eps=1e-8):
+        super(AsymmetricLoss, self).__init__()
+        self.gamma_pos = gamma_pos
+        self.gamma_neg = gamma_neg
+        self.clip = clip
+        self.eps = eps
+
+    def forward(self, inputs, targets):
+        inputs_sigmoid = torch.sigmoid(inputs)
+        inputs_sigmoid = torch.clamp(inputs_sigmoid, self.eps, 1 - self.eps)
+
+        if self.clip is not None and self.clip > 0:
+            inputs_sigmoid = (inputs_sigmoid - self.clip).clamp(min=0, max=1)
+
+        targets = targets.float()
+        loss_pos = targets * torch.log(inputs_sigmoid) * (1 - inputs_sigmoid) ** self.gamma_pos
+        loss_neg = (1 - targets) * torch.log(1 - inputs_sigmoid) * inputs_sigmoid ** self.gamma_neg
+        loss = -loss_pos - loss_neg
+        return loss.mean()
     
 
 # this model is binary classification model: malignant, benign    
@@ -247,7 +268,11 @@ class BinaryClassification(pl.LightningModule):
         self.final_layer = FCNetwork(input_size= 4, hidden_sizes=[8, 12, 5], output_size= 1)
 
 
-        self.loss_fn = nn.BCEWithLogitsLoss()  # More stable than BCELoss
+        self.loss_fn =  AsymmetricLoss(
+                    gamma_pos=0.0,     # do not suppress learning from malignant (minority)
+                    gamma_neg=4.0,     # suppress easy benign (majority) examples
+                    clip=0.05          # clip predictions near 0 or 1 to avoid overconfidence
+                )# AsymmetricLoss() # nn.BCEWithLogitsLoss()  # More stable than BCELoss
         self.accuracy_metric = BinaryAccuracy()  # Accuracy metric using TorchMetrics
         self.auc_metric = torchmetrics.AUROC(task="binary")
 
@@ -339,7 +364,6 @@ class BinaryClassification(pl.LightningModule):
             x4 = self.linear_center(x_center.reshape(x.shape[0], -1)) 
             x =  torch.cat([x1, x2, x3 ,x4], dim = -1)  
             return self.final_layer(x).squeeze(), (x1.squeeze(), x2.squeeze(), x3.squeeze(), x4.squeeze())
-
 
 
     def training_step(self, batch, batch_idx):
