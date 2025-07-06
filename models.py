@@ -222,6 +222,23 @@ class AsymmetricLoss(nn.Module):
         loss = -loss_pos - loss_neg
         return loss.mean()
     
+class FocalLoss(nn.Module):
+    def __init__(self, alpha=0.25, gamma=2.0, reduction='mean'):
+        super(FocalLoss, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.reduction = reduction
+
+    def forward(self, inputs, targets):
+        bce_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
+        probs = torch.sigmoid(inputs)
+        p_t = targets * probs + (1 - targets) * (1 - probs)
+        alpha_t = targets * self.alpha + (1 - targets) * (1 - self.alpha)
+        loss = alpha_t * (1 - p_t) ** self.gamma * bce_loss
+        return loss.mean() if self.reduction == 'mean' else loss.sum()
+    
+
+    
 
 # this model is binary classification model: malignant, benign    
 class BinaryClassification(pl.LightningModule):
@@ -272,7 +289,9 @@ class BinaryClassification(pl.LightningModule):
                     gamma_pos=0.0,     # do not suppress learning from malignant (minority)
                     gamma_neg=4.0,     # suppress easy benign (majority) examples
                     clip=0.05          # clip predictions near 0 or 1 to avoid overconfidence
-                )# AsymmetricLoss() # nn.BCEWithLogitsLoss()  # More stable than BCELoss
+                )# AsymmetricLoss() # nn.BCEWithLogitsLoss()  # More stable than 
+        self.loss_fn2 = FocalLoss()
+
         self.accuracy_metric = BinaryAccuracy()  # Accuracy metric using TorchMetrics
         self.auc_metric = torchmetrics.AUROC(task="binary")
 
@@ -326,8 +345,11 @@ class BinaryClassification(pl.LightningModule):
         if len(batch) == 2: 
             x, y = batch 
             scores, scores_tail = self.forward(x)  
-            loss = self.loss_fn(scores, y.float()) + self.loss_fn(scores_tail[0], y.float()) + \
-                        self.loss_fn(scores_tail[1], y.float()) + self.loss_fn(scores_tail[2], y.float()) + self.loss_fn(scores_tail[3], y.float())
+            loss = self.loss_fn(scores, y.float())*1.5 + self.loss_fn(scores_tail[0], y.float()) + \
+                        self.loss_fn(scores_tail[1], y.float()) + self.loss_fn(scores_tail[2], y.float()) + self.loss_fn(scores_tail[3], y.float()) +\
+                        self.loss_fn2(scores, y.float())*1.5 + self.loss_fn2(scores_tail[0], y.float()) + \
+                        self.loss_fn2(scores_tail[1], y.float()) + self.loss_fn2(scores_tail[2], y.float()) + self.loss_fn2(scores_tail[3], y.float())
+            
         else: 
             x, x2_rad,  y = batch
             scores, scores2 = self.forward(x, x2_radiomics=x2_rad)  
