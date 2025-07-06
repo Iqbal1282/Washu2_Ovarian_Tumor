@@ -41,7 +41,7 @@ all_tprs = []
 all_aucs = []
 
 project_title = "Ovarian Cancer Classification"
-Experiment_Group = f"Radiomics_False_4_encoder_median_scores_testset_Exp5_{commit_log}"
+Experiment_Group = f"Radiomics_False_4_encoder_hybridloss_Exp6_{commit_log}"
 train_config = {
         "k_fold": k_fold,
         "batch_size": batch_size,
