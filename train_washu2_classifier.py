@@ -8,7 +8,7 @@ from torch import nn
 from torch.utils.data import DataLoader, random_split
 from torchvision import transforms, datasets
 from datetime import datetime
-from models2 import BinaryClassification
+from models import BinaryClassification
 from dataset_washu2 import Classificaiton_Dataset
 from dataset_washu2_p1_43 import Classificaiton_Dataset as Classificaiton_Dataset_test
 import subprocess
@@ -41,14 +41,14 @@ all_tprs = []
 all_aucs = []
 
 project_title = "Ovarian Cancer Classification"
-Experiment_Group = f"Exp2:_mybase_imageonly_{commit_log}"
+Experiment_Group = f"Exp7:different_lossfunc_mybase_imageonly_{commit_log}"
 train_config = {
         "k_fold": k_fold,
         "batch_size": batch_size,
         "radiomics": False,
         "encoder_checkpoint": "normtverskyloss_binary_segmentation",
         "input_dim": 64,
-        "loss_fn": "BCEWithLogits",
+        "loss_fn": "different loss functions experiements",
         "model_type": "BinaryClassification",
         "info": "Foun encoder median Score experiment",
         "info2": "patient greater than 120 are considered in testset"

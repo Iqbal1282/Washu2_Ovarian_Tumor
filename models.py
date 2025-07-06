@@ -11,26 +11,41 @@ from torchmetrics.classification import MulticlassAccuracy, MulticlassAUROC
 
 from losses import * 
 
+class AsymmetricLoss(nn.Module):
+    def __init__(self, gamma_pos=0.0, gamma_neg=4.0, clip=0.05, eps=1e-8):
+        super().__init__()
+        self.gamma_pos = gamma_pos
+        self.gamma_neg = gamma_neg
+        self.clip = clip
+        self.eps = eps
 
-import torch.nn as nn
-import segmentation_models_pytorch as smp
+    def forward(self, inputs, targets):
+        inputs_sigmoid = torch.sigmoid(inputs)
+        inputs_sigmoid = torch.clamp(inputs_sigmoid, self.eps, 1 - self.eps)
 
-class SDFModel(nn.Module):
-    def __init__(self):
-        super(SDFModel, self).__init__()
-        self.backbone = smp.DeepLabV3Plus(
-            encoder_name="resnet34",
-            encoder_weights="imagenet",
-            in_channels=1,
-            classes=1
-        )
-        self.activation = nn.Tanh()
+        if self.clip is not None and self.clip > 0:
+            inputs_sigmoid = (inputs_sigmoid - self.clip).clamp(min=0, max=1)
 
-    def forward(self, x):
-        x = self.backbone(x)        # Output shape: (B, 1, H, W)
-        x = self.activation(x)      # Output in [-1, 1]
-        return x
+        targets = targets.float()
+        loss_pos = targets * torch.log(inputs_sigmoid) * (1 - inputs_sigmoid) ** self.gamma_pos
+        loss_neg = (1 - targets) * torch.log(1 - inputs_sigmoid) * inputs_sigmoid ** self.gamma_neg
+        loss = -loss_pos - loss_neg
+        return loss.mean()
     
+class FocalLoss(nn.Module):
+    def __init__(self, alpha=0.25, gamma=2.0, reduction='mean'):
+        super(FocalLoss, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.reduction = reduction
+
+    def forward(self, inputs, targets):
+        bce_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
+        probs = torch.sigmoid(inputs)
+        p_t = targets * probs + (1 - targets) * (1 - probs)
+        alpha_t = targets * self.alpha + (1 - targets) * (1 - self.alpha)
+        loss = alpha_t * (1 - p_t) ** self.gamma * bce_loss
+        return loss.mean() if self.reduction == 'mean' else loss.sum()
 
 class MyEncoder(nn.Module):
     def __init__(self):
@@ -200,44 +215,6 @@ class FCNetwork(nn.Module):
     def forward(self, x):
         return self.model(x)
 
-
-class AsymmetricLoss(nn.Module):
-    def __init__(self, gamma_pos=0, gamma_neg=4, clip=0.05, eps=1e-8):
-        super(AsymmetricLoss, self).__init__()
-        self.gamma_pos = gamma_pos
-        self.gamma_neg = gamma_neg
-        self.clip = clip
-        self.eps = eps
-
-    def forward(self, inputs, targets):
-        inputs_sigmoid = torch.sigmoid(inputs)
-        inputs_sigmoid = torch.clamp(inputs_sigmoid, self.eps, 1 - self.eps)
-
-        if self.clip is not None and self.clip > 0:
-            inputs_sigmoid = (inputs_sigmoid - self.clip).clamp(min=0, max=1)
-
-        targets = targets.float()
-        loss_pos = targets * torch.log(inputs_sigmoid) * (1 - inputs_sigmoid) ** self.gamma_pos
-        loss_neg = (1 - targets) * torch.log(1 - inputs_sigmoid) * inputs_sigmoid ** self.gamma_neg
-        loss = -loss_pos - loss_neg
-        return loss.mean()
-    
-class FocalLoss(nn.Module):
-    def __init__(self, alpha=0.25, gamma=2.0, reduction='mean'):
-        super(FocalLoss, self).__init__()
-        self.alpha = alpha
-        self.gamma = gamma
-        self.reduction = reduction
-
-    def forward(self, inputs, targets):
-        bce_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
-        probs = torch.sigmoid(inputs)
-        p_t = targets * probs + (1 - targets) * (1 - probs)
-        alpha_t = targets * self.alpha + (1 - targets) * (1 - self.alpha)
-        loss = alpha_t * (1 - p_t) ** self.gamma * bce_loss
-        return loss.mean() if self.reduction == 'mean' else loss.sum()
-    
-
     
 
 # this model is binary classification model: malignant, benign    
@@ -260,17 +237,8 @@ class BinaryClassification(pl.LightningModule):
         for param in self.encoder.parameters():
             param.requires_grad = False
 
-        self.sdf_model = SDFModel()
-        sdf_model_path = "./checkpoints/deeplabv3/model_20250620_211018/epoch_16"
-        self.sdf_model.load_state_dict(torch.load(sdf_model_path))
 
-        for param in self.sdf_model.parameters():
-            param.requires_grad = False 
-
-        self.boundary_encoder = MyEncoder()
-        self.center_encoder = MyEncoder()
         
-        self.output_size = 1
         if radiomics:  
             self.linear_radiomics = FCNetwork(input_size= radiomics_dim, hidden_sizes=[128, 64, 64], output_size= 32)  
             self.linear_radiomics_tail = FCNetwork(input_size= 32, hidden_sizes=[32, 32, 16], output_size= self.output_size)  
@@ -279,19 +247,9 @@ class BinaryClassification(pl.LightningModule):
         else:
             self.linear = FCNetwork(input_size= self.input_size*2, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
             self.linear_trainable = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes2, output_size= self.output_size)   
-            self.linear_boundary = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
-            self.linear_center = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes, output_size= self.output_size)  
-
-        self.final_layer = FCNetwork(input_size= 4, hidden_sizes=[8, 12, 5], output_size= 1)
 
 
-        self.loss_fn =  AsymmetricLoss(
-                    gamma_pos=0.0,     # do not suppress learning from malignant (minority)
-                    gamma_neg=4.0,     # suppress easy benign (majority) examples
-                    clip=0.05          # clip predictions near 0 or 1 to avoid overconfidence
-                )# AsymmetricLoss() # nn.BCEWithLogitsLoss()  # More stable than 
-        self.loss_fn2 = FocalLoss()
-
+        self.loss_fn = AsymmetricLoss() #nn.BCEWithLogitsLoss()  # More stable than BCELoss
         self.accuracy_metric = BinaryAccuracy()  # Accuracy metric using TorchMetrics
         self.auc_metric = torchmetrics.AUROC(task="binary")
 
@@ -344,34 +302,18 @@ class BinaryClassification(pl.LightningModule):
     def _common_step(self, batch, batch_idx):
         if len(batch) == 2: 
             x, y = batch 
-            scores, scores_tail = self.forward(x)  
-            loss = self.loss_fn(scores, y.float())*2 + self.loss_fn(scores_tail[0], y.float()) + \
-                        self.loss_fn(scores_tail[1], y.float()) + self.loss_fn(scores_tail[2], y.float()) + self.loss_fn(scores_tail[3], y.float()) +\
-                        self.loss_fn2(scores, y.float())*2 + self.loss_fn2(scores_tail[0], y.float()) + \
-                        self.loss_fn2(scores_tail[1], y.float()) + self.loss_fn2(scores_tail[2], y.float()) + self.loss_fn2(scores_tail[3], y.float())
-            
+            scores, scores2 = self.forward(x)  
+            loss = self.loss_fn(scores, y.float()) + self.loss_fn(scores2, y.float())
         else: 
             x, x2_rad,  y = batch
             scores, scores2 = self.forward(x, x2_radiomics=x2_rad)  
             loss = self.loss_fn(scores, y.float()) + self.loss_fn(scores2[0], y.float()) + self.loss_fn(scores2[1], y.float())  # Ensure labels are float for BCEWithLogitsLoss
-        return loss, scores , y, x 
-    
-    def normalize_sdf(self, sdf_image):
-        sdf_image = (sdf_image - sdf_image.min())/(sdf_image.max() - sdf_image.min() + 1e-8)
-        sdf_image = sdf_image*2 -1 
-        return sdf_image
+        return loss, scores, y, x 
 
     def forward(self, x, x2_radiomics=None):    
         x1 = self.encoder(x)
         x2 = self.encoder_trainable(x)
-
-        x_sdf = self.sdf_model(x)
-        x_sdf = self.normalize_sdf(x_sdf)
-
-        x_boundary = self.boundary_encoder(x*(x_sdf.abs()<.4))
-        x_center = self.center_encoder(x*(x_sdf<.1)) 
-
-
+        
         x = torch.cat((x1, x2), dim=1)  # Concatenate the outputs from both encoders
         x = x.reshape(x.shape[0], -1)
 
@@ -380,13 +322,7 @@ class BinaryClassification(pl.LightningModule):
             x = torch.cat((x, x2_radiomics), dim=1)
             return self.linear(x).squeeze(), (self.linear_trainable(x2.reshape(x.shape[0], -1)).squeeze() , self.linear_radiomics_tail(x2_radiomics).squeeze())
         else:   
-            x1 = self.linear(x)
-            x2 = self.linear_trainable(x2.reshape(x.shape[0], -1))
-            x3 = self.linear_boundary(x_boundary.reshape(x.shape[0], -1))
-            x4 = self.linear_center(x_center.reshape(x.shape[0], -1)) 
-            x =  torch.cat([x1, x2, x3 ,x4], dim = -1)  
-            return self.final_layer(x).squeeze(), (x1.squeeze(), x2.squeeze(), x3.squeeze(), x4.squeeze())
-
+            return self.linear(x).squeeze(), self.linear_trainable(x2.reshape(x.shape[0], -1)).squeeze()
 
     def training_step(self, batch, batch_idx):
         loss, scores, y, _ = self._common_step(batch, batch_idx)
@@ -456,6 +392,10 @@ class BinaryClassification(pl.LightningModule):
         self.log("test/auc", self.auc_metric.compute(), prog_bar=True)
         self.log("test/weighted_accuracy", self.compute_weighted_accuracy(), prog_bar=True)
         self.reset_weighted_accuracy()
+
+    # def configure_optimizers(self):
+    #     optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+    #     return optimizer
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=self.hparams.weight_decay)

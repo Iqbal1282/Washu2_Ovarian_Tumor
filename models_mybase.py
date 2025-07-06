@@ -11,27 +11,6 @@ from torchmetrics.classification import MulticlassAccuracy, MulticlassAUROC
 
 from losses import * 
 
-
-import torch.nn as nn
-import segmentation_models_pytorch as smp
-
-class SDFModel(nn.Module):
-    def __init__(self):
-        super(SDFModel, self).__init__()
-        self.backbone = smp.DeepLabV3Plus(
-            encoder_name="resnet34",
-            encoder_weights="imagenet",
-            in_channels=1,
-            classes=1
-        )
-        self.activation = nn.Tanh()
-
-    def forward(self, x):
-        x = self.backbone(x)        # Output shape: (B, 1, H, W)
-        x = self.activation(x)      # Output in [-1, 1]
-        return x
-    
-
 class MyEncoder(nn.Module):
     def __init__(self):
         super().__init__()
@@ -199,7 +178,7 @@ class FCNetwork(nn.Module):
 
     def forward(self, x):
         return self.model(x)
-
+    
     
 
 # this model is binary classification model: malignant, benign    
@@ -221,7 +200,9 @@ class BinaryClassification(pl.LightningModule):
         # **Freeze the encoder weights**
         for param in self.encoder.parameters():
             param.requires_grad = False
-    
+
+
+        
         if radiomics:  
             self.linear_radiomics = FCNetwork(input_size= radiomics_dim, hidden_sizes=[128, 64, 64], output_size= 32)  
             self.linear_radiomics_tail = FCNetwork(input_size= 32, hidden_sizes=[32, 32, 16], output_size= self.output_size)  
@@ -375,6 +356,10 @@ class BinaryClassification(pl.LightningModule):
         self.log("test/auc", self.auc_metric.compute(), prog_bar=True)
         self.log("test/weighted_accuracy", self.compute_weighted_accuracy(), prog_bar=True)
         self.reset_weighted_accuracy()
+
+    # def configure_optimizers(self):
+    #     optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+    #     return optimizer
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=self.hparams.weight_decay)
@@ -398,8 +383,7 @@ class BinaryClassification(pl.LightningModule):
                     x, y = batch
                     x = x.to(self.device)
                     y = y.to(self.device)
-                    scores1, scores2 = self.forward(x) #, radio)
-                    scores = scores1 #*0.6 + scores2*0.4 
+                    scores, _ = self.forward(x) #, radio)
                 else: 
                     x, radio, y = batch
                     x = x.to(self.device)
