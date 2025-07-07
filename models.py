@@ -306,8 +306,8 @@ class BinaryClassification(pl.LightningModule):
         if len(batch) == 2: 
             x, y = batch 
             scores, scores2 = self.forward(x)  
-            loss = self.loss_fn(scores, y.float())*.5 + self.loss_fn(scores2, y.float()) \
-                        + self.loss_fn2(scores, y.float())*.5 + self.loss_fn2(scores2, y.float())
+            loss = self.loss_fn(scores, y.float())*.25 + self.loss_fn(scores2, y.float()) \
+                        + self.loss_fn2(scores, y.float())*.25 + self.loss_fn2(scores2, y.float())
         else: 
             x, x2_rad,  y = batch
             scores, scores2 = self.forward(x, x2_radiomics=x2_rad)  
