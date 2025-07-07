@@ -272,27 +272,23 @@ class BinaryClassification(pl.LightningModule):
         self.boundary_encoder = MyEncoder()
         self.center_encoder = MyEncoder()
         
-        self.output_size = 1
+        self.output_size = 5
         if radiomics:  
             self.linear_radiomics = FCNetwork(input_size= radiomics_dim, hidden_sizes=[128, 64, 64], output_size= 32)  
             self.linear_radiomics_tail = FCNetwork(input_size= 32, hidden_sizes=[32, 32, 16], output_size= self.output_size)  
             self.linear = FCNetwork(input_size= self.input_size*2+32, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
             self.linear_trainable = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes2, output_size= self.output_size)  
         else:
-            self.linear = FCNetwork(input_size= self.input_size*2, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
+            self.linear = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
             self.linear_trainable = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes2, output_size= self.output_size)   
             self.linear_boundary = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
             self.linear_center = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes, output_size= self.output_size)  
 
-        self.final_layer = FCNetwork(input_size= 4, hidden_sizes=[8, 12, 5], output_size= 1)
+        self.final_layer = FCNetwork(input_size= 4*self.output_size, hidden_sizes=[8, 12, 5], output_size= 1)
 
 
-        self.loss_fn =  AsymmetricLoss(
-                    gamma_pos=0.0,     # do not suppress learning from malignant (minority)
-                    gamma_neg=4.0,     # suppress easy benign (majority) examples
-                    clip=0.05          # clip predictions near 0 or 1 to avoid overconfidence
-                )# AsymmetricLoss() # nn.BCEWithLogitsLoss()  # More stable than 
-        self.loss_fn2 = FocalLoss()
+        self.loss_fn = FocalLoss() 
+        self.loss_fn2 = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([3.0])) #FocalLoss()
 
         self.accuracy_metric = BinaryAccuracy()  # Accuracy metric using TorchMetrics
         self.auc_metric = torchmetrics.AUROC(task="binary")
@@ -346,11 +342,12 @@ class BinaryClassification(pl.LightningModule):
     def _common_step(self, batch, batch_idx):
         if len(batch) == 2: 
             x, y = batch 
+            y2 = y.unsqueeze(-1).repeat((1, self.output_size))
             scores, scores_tail = self.forward(x)  
-            loss = self.loss_fn(scores, y.float())*0.3 + self.loss_fn(scores_tail[0], y.float()) + \
-                        self.loss_fn(scores_tail[1], y.float()) + self.loss_fn(scores_tail[2], y.float()) + self.loss_fn(scores_tail[3], y.float()) +\
-                        self.loss_fn2(scores, y.float())*0.3 + self.loss_fn2(scores_tail[0], y.float()) + \
-                        self.loss_fn2(scores_tail[1], y.float()) + self.loss_fn2(scores_tail[2], y.float()) + self.loss_fn2(scores_tail[3], y.float())
+            loss = self.loss_fn(scores, y.float()) + self.loss_fn(scores_tail[0], y2.float())*0.5 + \
+                        self.loss_fn(scores_tail[1], y2.float()) + self.loss_fn(scores_tail[2], y2.float()) + self.loss_fn(scores_tail[3], y2.float()) +\
+                        self.loss_fn2(scores, y.float()) + self.loss_fn2(scores_tail[0], y2.float())*0.5 + \
+                        self.loss_fn2(scores_tail[1], y2.float()) + self.loss_fn2(scores_tail[2], y2.float()) + self.loss_fn2(scores_tail[3], y2.float())
             
         else: 
             x, x2_rad,  y = batch
@@ -374,15 +371,12 @@ class BinaryClassification(pl.LightningModule):
         x_center = self.center_encoder(x*(x_sdf<.1)) 
 
 
-        x = torch.cat((x1, x2), dim=1)  # Concatenate the outputs from both encoders
-        x = x.reshape(x.shape[0], -1)
-
         if x2_radiomics is not None:
             x2_radiomics = self.linear_radiomics(x2_radiomics)
             x = torch.cat((x, x2_radiomics), dim=1)
             return self.linear(x).squeeze(), (self.linear_trainable(x2.reshape(x.shape[0], -1)).squeeze() , self.linear_radiomics_tail(x2_radiomics).squeeze())
         else:   
-            x1 = self.linear(x)
+            x1 = self.linear(x1.reshape(x.shape[0], -1))
             x2 = self.linear_trainable(x2.reshape(x.shape[0], -1))
             x3 = self.linear_boundary(x_boundary.reshape(x.shape[0], -1))
             x4 = self.linear_center(x_center.reshape(x.shape[0], -1)) 
