@@ -41,14 +41,14 @@ all_tprs = []
 all_aucs = []
 
 project_title = "Ovarian Cancer Classification 4"
-Experiment_Group = f"Exp8:Multihead_model_.5_pre_encoder_{commit_log}"
+Experiment_Group = f"Exp9:Multihead_model_.5_pre_encoder_{commit_log}"
 train_config = {
         "k_fold": k_fold,
         "batch_size": batch_size,
         "radiomics": False,
         "encoder_checkpoint": "normtverskyloss_binary_segmentation",
         "input_dim": 64,
-        "loss_fn": "different loss functions experiements, where score is 0.3 score2 is 1 weight",
+        "loss_fn": "different loss functions experiements, where score is 2 score2 is 0.5 weight",
         "model_type": "BinaryClassification",
         "info": "Foun encoder median Score experiment",
         "info2": "patient greater than 120 are considered in testset"
