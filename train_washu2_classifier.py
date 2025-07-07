@@ -40,7 +40,7 @@ all_fprs = []
 all_tprs = []
 all_aucs = []
 
-project_title = "Ovarian Cancer Classification:2"
+project_title = "Ovarian Cancer Classification 4"
 Experiment_Group = f"Exp7:different_lossfunc_mybase_imageonly_{commit_log}"
 train_config = {
         "k_fold": k_fold,
@@ -48,7 +48,7 @@ train_config = {
         "radiomics": False,
         "encoder_checkpoint": "normtverskyloss_binary_segmentation",
         "input_dim": 64,
-        "loss_fn": "different loss functions experiements",
+        "loss_fn": "different loss functions experiements, where score is 0.5 score2 is 1 weight",
         "model_type": "BinaryClassification",
         "info": "Foun encoder median Score experiment",
         "info2": "patient greater than 120 are considered in testset"
