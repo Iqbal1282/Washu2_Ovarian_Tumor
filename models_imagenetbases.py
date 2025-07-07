@@ -266,7 +266,7 @@ class ImageNet_Models(nn.Module):
         self._adapt_output_layer()
 
     def _adapt_input_layer(self):
-        if self.model_name.startswith("resnet") or self.model_name.startswith("inception"):
+        if self.model_name.startswith("resnet"):
             old_conv = self.model.conv1
             self.model.conv1 = nn.Conv2d(
                 in_channels=1,
@@ -296,6 +296,17 @@ class ImageNet_Models(nn.Module):
                 padding=old_conv.padding,
                 bias=old_conv.bias is not None
             )
+        elif self.model_name == "inception":
+            old_conv = self.model.Conv2d_1a_3x3.conv
+            new_conv = nn.Conv2d(
+                in_channels=1,
+                out_channels=old_conv.out_channels,
+                kernel_size=old_conv.kernel_size,
+                stride=old_conv.stride,
+                padding=old_conv.padding,
+                bias=old_conv.bias is not None
+            )
+            self.model.Conv2d_1a_3x3.conv = new_conv
 
     def _adapt_output_layer(self):
         if self.model_name.startswith("resnet") or self.model_name.startswith("inception"):
@@ -318,7 +329,7 @@ class BinaryClassification(pl.LightningModule):
     def __init__(self, input_dim=8192*2, num_classes = 1,  lr=1e-3, weight_decay=1e-5, encoder_weight_path = None, radiomics = False, radiomics_dim = 463):
         super().__init__()
         
-        self.model = ImageNet_Models(name_model="inception")
+        self.model = ImageNet_Models(name_model="vgg16")
 
 
         self.loss_fn = nn.BCEWithLogitsLoss()  #AsymmetricLoss()  #nn.BCEWithLogitsLoss()  # More stable than BCELoss
