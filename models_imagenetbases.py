@@ -322,6 +322,7 @@ class BinaryClassification(pl.LightningModule):
 
 
         self.loss_fn = AsymmetricLoss()  #nn.BCEWithLogitsLoss()  # More stable than BCELoss
+        self.loss_fn2 = FocalLoss()
         self.accuracy_metric = BinaryAccuracy()  # Accuracy metric using TorchMetrics
         self.auc_metric = torchmetrics.AUROC(task="binary")
 
@@ -375,7 +376,7 @@ class BinaryClassification(pl.LightningModule):
         if len(batch) == 2: 
             x, y = batch 
             scores = self.forward(x)  
-            loss = self.loss_fn(scores, y.float())
+            loss = self.loss_fn(scores, y.float()) + self.loss_fn2(scores, y.float())
         else: 
             x, x2_rad,  y = batch
             scores, scores2 = self.forward(x, x2_radiomics=x2_rad)  
