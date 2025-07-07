@@ -329,7 +329,7 @@ class BinaryClassification(pl.LightningModule):
     def __init__(self, input_dim=8192*2, num_classes = 1,  lr=1e-3, weight_decay=1e-5, encoder_weight_path = None, radiomics = False, radiomics_dim = 463):
         super().__init__()
         
-        self.model = ImageNet_Models(name_model="vgg16")
+        self.model = ImageNet_Models(name_model="densenet")
 
 
         self.loss_fn = nn.BCEWithLogitsLoss()  #AsymmetricLoss()  #nn.BCEWithLogitsLoss()  # More stable than BCELoss
