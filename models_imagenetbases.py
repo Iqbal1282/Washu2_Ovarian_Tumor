@@ -10,6 +10,11 @@ import torchmetrics
 from torchmetrics.classification import MulticlassAccuracy, MulticlassAUROC
 
 from losses import * 
+import torchvision
+from torchvision.models import (
+    vgg16, vgg19, inception_v3, densenet121, resnet50,
+    VGG16_Weights, VGG19_Weights, Inception_V3_Weights, DenseNet121_Weights, ResNet50_Weights
+)
 
 
 import torch.nn as nn
@@ -200,6 +205,75 @@ class FCNetwork(nn.Module):
     def forward(self, x):
         return self.model(x)
 
+
+
+class ImageNet_Models(nn.Module):
+    def __init__(self, name_model="resnet"):
+        super().__init__()
+        MODELS = {
+                    "vgg16": vgg16(weights=VGG16_Weights.DEFAULT),
+                    "vgg19": vgg19(weights=VGG19_Weights.DEFAULT),
+                    "inception": inception_v3(weights=Inception_V3_Weights.DEFAULT),  # Don't set aux_logits
+                    "densenet": densenet121(weights=DenseNet121_Weights.DEFAULT),
+                    "resnet": resnet50(weights=ResNet50_Weights.DEFAULT)
+                }
+
+        assert name_model in MODELS, f"Model '{name_model}' not supported. Choose from {list(MODELS.keys())}"
+        self.model_name = name_model
+        self.model = MODELS[name_model]
+
+        # Modify first conv layer for single-channel input
+        self._adapt_input_layer()
+
+        # Modify final layer for binary classification
+        self._adapt_output_layer()
+
+    def _adapt_input_layer(self):
+        if self.model_name.startswith("resnet") or self.model_name.startswith("inception"):
+            old_conv = self.model.conv1
+            self.model.conv1 = nn.Conv2d(
+                in_channels=1,
+                out_channels=old_conv.out_channels,
+                kernel_size=old_conv.kernel_size,
+                stride=old_conv.stride,
+                padding=old_conv.padding,
+                bias=old_conv.bias is not None
+            )
+        elif self.model_name.startswith("vgg"):
+            old_conv = self.model.features[0]
+            self.model.features[0] = nn.Conv2d(
+                in_channels=1,
+                out_channels=old_conv.out_channels,
+                kernel_size=old_conv.kernel_size,
+                stride=old_conv.stride,
+                padding=old_conv.padding,
+                bias=old_conv.bias is not None
+            )
+        elif self.model_name.startswith("densenet"):
+            old_conv = self.model.features.conv0
+            self.model.features.conv0 = nn.Conv2d(
+                in_channels=1,
+                out_channels=old_conv.out_channels,
+                kernel_size=old_conv.kernel_size,
+                stride=old_conv.stride,
+                padding=old_conv.padding,
+                bias=old_conv.bias is not None
+            )
+
+    def _adapt_output_layer(self):
+        if self.model_name.startswith("resnet") or self.model_name.startswith("inception"):
+            in_features = self.model.fc.in_features
+            self.model.fc = nn.Linear(in_features, 1)
+        elif self.model_name.startswith("vgg"):
+            in_features = self.model.classifier[-1].in_features
+            self.model.classifier[-1] = nn.Linear(in_features, 1)
+        elif self.model_name.startswith("densenet"):
+            in_features = self.model.classifier.in_features
+            self.model.classifier = nn.Linear(in_features, 1)
+
+    def forward(self, x):
+        return self.model(x).squeeze(1)
+
     
 
 # this model is binary classification model: malignant, benign    
@@ -207,7 +281,7 @@ class BinaryClassification(pl.LightningModule):
     def __init__(self, input_dim=8192*2, num_classes = 1,  lr=1e-3, weight_decay=1e-5, encoder_weight_path = None, radiomics = False, radiomics_dim = 463):
         super().__init__()
         
-        self.model = None 
+        self.model = ImageNet_Models(name_model="resnet")
 
 
         self.loss_fn = nn.BCEWithLogitsLoss()  # More stable than BCELoss
