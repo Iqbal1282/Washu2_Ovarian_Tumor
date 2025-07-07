@@ -20,6 +20,43 @@ from torchvision.models import (
 import torch.nn as nn
 import segmentation_models_pytorch as smp
 
+class AsymmetricLoss(nn.Module):
+    def __init__(self, gamma_pos=0.0, gamma_neg=4.0, clip=0.05, eps=1e-8):
+        super().__init__()
+        self.gamma_pos = gamma_pos
+        self.gamma_neg = gamma_neg
+        self.clip = clip
+        self.eps = eps
+
+    def forward(self, inputs, targets):
+        inputs_sigmoid = torch.sigmoid(inputs)
+        inputs_sigmoid = torch.clamp(inputs_sigmoid, self.eps, 1 - self.eps)
+
+        if self.clip is not None and self.clip > 0:
+            inputs_sigmoid = (inputs_sigmoid - self.clip).clamp(min=0, max=1)
+
+        targets = targets.float()
+        loss_pos = targets * torch.log(inputs_sigmoid) * (1 - inputs_sigmoid) ** self.gamma_pos
+        loss_neg = (1 - targets) * torch.log(1 - inputs_sigmoid) * inputs_sigmoid ** self.gamma_neg
+        loss = -loss_pos - loss_neg
+        return loss.mean()
+    
+class FocalLoss(nn.Module):
+    def __init__(self, alpha=0.25, gamma=2.0, reduction='mean'):
+        super(FocalLoss, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.reduction = reduction
+
+    def forward(self, inputs, targets):
+        bce_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
+        probs = torch.sigmoid(inputs)
+        p_t = targets * probs + (1 - targets) * (1 - probs)
+        alpha_t = targets * self.alpha + (1 - targets) * (1 - self.alpha)
+        loss = alpha_t * (1 - p_t) ** self.gamma * bce_loss
+        return loss.mean() if self.reduction == 'mean' else loss.sum()
+    
+
 class SDFModel(nn.Module):
     def __init__(self):
         super(SDFModel, self).__init__()
@@ -284,7 +321,7 @@ class BinaryClassification(pl.LightningModule):
         self.model = ImageNet_Models(name_model="densenet")
 
 
-        self.loss_fn = nn.BCEWithLogitsLoss()  # More stable than BCELoss
+        self.loss_fn = AsymmetricLoss()  #nn.BCEWithLogitsLoss()  # More stable than BCELoss
         self.accuracy_metric = BinaryAccuracy()  # Accuracy metric using TorchMetrics
         self.auc_metric = torchmetrics.AUROC(task="binary")
 
