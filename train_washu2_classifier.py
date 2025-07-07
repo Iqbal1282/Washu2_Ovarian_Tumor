@@ -8,7 +8,7 @@ from torch import nn
 from torch.utils.data import DataLoader, random_split
 from torchvision import transforms, datasets
 from datetime import datetime
-from model2 import BinaryClassification
+from models import BinaryClassification
 from dataset_washu2 import Classificaiton_Dataset
 from dataset_washu2_p1_43 import Classificaiton_Dataset as Classificaiton_Dataset_test
 import subprocess
@@ -40,7 +40,7 @@ all_fprs = []
 all_tprs = []
 all_aucs = []
 
-project_title = "Ovarian Cancer Classification"
+project_title = "Ovarian Cancer Classification:2"
 Experiment_Group = f"Exp7:different_lossfunc_mybase_imageonly_{commit_log}"
 train_config = {
         "k_fold": k_fold,

@@ -11,6 +11,7 @@ from torchmetrics.classification import MulticlassAccuracy, MulticlassAUROC
 
 from losses import * 
 
+
 class AsymmetricLoss(nn.Module):
     def __init__(self, gamma_pos=0.0, gamma_neg=4.0, clip=0.05, eps=1e-8):
         super().__init__()
@@ -46,6 +47,7 @@ class FocalLoss(nn.Module):
         alpha_t = targets * self.alpha + (1 - targets) * (1 - self.alpha)
         loss = alpha_t * (1 - p_t) ** self.gamma * bce_loss
         return loss.mean() if self.reduction == 'mean' else loss.sum()
+    
 
 class MyEncoder(nn.Module):
     def __init__(self):
@@ -249,7 +251,8 @@ class BinaryClassification(pl.LightningModule):
             self.linear_trainable = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes2, output_size= self.output_size)   
 
 
-        self.loss_fn = AsymmetricLoss() #nn.BCEWithLogitsLoss()  # More stable than BCELoss
+        self.loss_fn = AsymmetricLoss() # nn.BCEWithLogitsLoss()  # More stable than BCELoss
+        self.loss_fn2 = FocalLoss()
         self.accuracy_metric = BinaryAccuracy()  # Accuracy metric using TorchMetrics
         self.auc_metric = torchmetrics.AUROC(task="binary")
 
@@ -303,7 +306,8 @@ class BinaryClassification(pl.LightningModule):
         if len(batch) == 2: 
             x, y = batch 
             scores, scores2 = self.forward(x)  
-            loss = self.loss_fn(scores, y.float()) + self.loss_fn(scores2, y.float())
+            loss = self.loss_fn(scores, y.float())*1.5 + self.loss_fn(scores2, y.float()) \
+                        + self.loss_fn2(scores, y.float())*1.5 + self.loss_fn2(scores2, y.float())
         else: 
             x, x2_rad,  y = batch
             scores, scores2 = self.forward(x, x2_radiomics=x2_rad)  
