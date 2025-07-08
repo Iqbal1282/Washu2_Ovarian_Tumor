@@ -17,6 +17,10 @@ from sklearn.metrics import roc_curve, auc
 import matplotlib.pyplot as plt
 from utils import plot_roc_curve
 import numpy as np
+import random 
+
+SEED = 41 
+np.random.seed(SEED); torch.manual_seed(SEED) ; random.seed(SEED); 
 
 max_epochs = 250
 min_epochs = 1
@@ -41,7 +45,7 @@ all_tprs = []
 all_aucs = []
 
 project_title = "Ovarian Cancer Classification 4"
-Experiment_Group = f"Exp10:data_augmentation_testing_{commit_log}"
+Experiment_Group = f"Exp9:Previously_mean_auc83_{commit_log}"
 train_config = {
         "k_fold": k_fold,
         "batch_size": batch_size,
