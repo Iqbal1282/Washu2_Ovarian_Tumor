@@ -73,7 +73,7 @@ train_transform = A.Compose([
     #A.RandomCrop(256, 256),
 	A.RandomResizedCrop(scale=(0.95, 1.0),
 						ratio=(0.95, 1.05),
-						size=(256, 256),
+						size=(256, 256)
 						),
 
     A.HorizontalFlip(p=0.5),
@@ -82,7 +82,7 @@ train_transform = A.Compose([
 
 	A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.05, rotate_limit=10, border_mode=0, value=0, p=0.5), 
     A.ElasticTransform(p=0.5),
-    A.GridDistortion(p=0.2),
+    #A.GridDistortion(p=0.2),
 
 	#A.GaussNoise(var_limit=(0.2, 0.44), p=1),
     A.RandomBrightnessContrast(brightness_limit=0.01, contrast_limit=0.01, p=0.5),
