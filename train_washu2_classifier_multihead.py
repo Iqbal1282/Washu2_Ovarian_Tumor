@@ -70,7 +70,7 @@ for fold in range(k_fold):
         project=project_title,
         name=run_name,
         group= Experiment_Group,
-        tags=[f"fold_{fold}", "radiomics=False", f"commit_{commit_log}", "On Reviewed Cleaned Data", {commit_string}]
+        tags=[f"fold_{fold}", "radiomics=False", f"commit_{commit_log}", "On Reviewed Cleaned Data", commit_string]
     )
 
     wandb_logger.experiment.config.update(train_config)
