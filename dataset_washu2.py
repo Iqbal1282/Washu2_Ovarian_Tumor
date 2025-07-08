@@ -81,10 +81,10 @@ train_transform = A.Compose([
     A.RandomRotate90(p=0.5),
 
 	A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.05, rotate_limit=10, border_mode=0, value=0, p=0.5), 
-    A.ElasticTransform(alpha = 100, sigma = 50, p=0.8),
+    A.ElasticTransform(alpha = 5, sigma = 50, p=0.8),
     A.GridDistortion(distort_limit=(-0.1,0.1), p=0.5),
 
-	A.GaussNoise(std_range = (0, 0.07), mean_range=(0, 0.1), p=1),
+	#A.GaussNoise(var_limit=(0.2, 0.44), p=1),
     A.RandomBrightnessContrast(brightness_limit=(-0.3, 0.3), contrast_limit=(-0.1, 0.1), p=0.5),
     #A.CLAHE(clip_limit=.5, tile_grid_size=(8, 8), p=0.5),
     A.Downscale(scale_range=(0.9,0.95), p=0.5),
