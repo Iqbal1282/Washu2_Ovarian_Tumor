@@ -376,7 +376,7 @@ class BinaryClassification(pl.LightningModule):
             x = torch.cat((x, x2_radiomics), dim=1)
             return self.linear(x).squeeze(), (self.linear_trainable(x2.reshape(x.shape[0], -1)).squeeze() , self.linear_radiomics_tail(x2_radiomics).squeeze())
         else:   
-            x1 = self.linear(x1.reshape(x.shape[0], -1))
+            x1 = self.linear(x1.reshape(x.shape[0], -1))*0
             x2 = self.linear_trainable(x2.reshape(x.shape[0], -1))
             x3 = self.linear_boundary(x_boundary.reshape(x.shape[0], -1))
             x4 = self.linear_center(x_center.reshape(x.shape[0], -1)) 
