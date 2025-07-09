@@ -1,28 +1,33 @@
 import pandas as pd
+import re
 
-#1️⃣ Read the main dataset
-df = pd.read_csv(r"Only_radiomics_based_classification\radiomics_features_washu2_p1_143_sdf4.csv")  # Replace with your actual data
-#Ensure it has a 'patientID' column
-print(df.head())
+# Example: Load your data
+radiomics_df = pd.read_csv("radiomics.csv")   # Contains ImagePath and features
+gt_df = pd.read_csv("gt.csv")                 # Contains GT (label), Patient ID, Side
 
-# 2️⃣ Read labels from both sheets
-labels_sheet1 = pd.read_excel("data/PAT_imaging_record.xlsx", sheet_name="ROI STATS V3", usecols=["Patient ID", "GT"])
-labels_sheet2 = pd.read_excel("data/PAT_imaging_record.xlsx", sheet_name="ROI STATS V4 (3)", usecols=["Patient ID", "GT"])
+# --- Step 1: Extract patient_id and side from ImagePath ---
+def extract_pid_side(path):
+    # Example path: data/.../p10/R/1.jpg → extract '10' and 'R'
+    match = re.search(r"/p(\d+)/([RC])/", path)
+    if match:
+        pid = int(match.group(1))
+        side = match.group(2)
+        return pd.Series({'PatientID': pid, 'Side': side})
+    else:
+        return pd.Series({'PatientID': None, 'Side': None})
 
-# 3️⃣ Concatenate labels
-all_labels = pd.concat([labels_sheet1, labels_sheet2], ignore_index=True)
+radiomics_df[['PatientID', 'Side']] = radiomics_df['ImagePath'].apply(extract_pid_side)
 
-# 4️⃣ Drop duplicate patientIDs if needed (keeping the LAST one as priority)
-all_labels = all_labels.drop_duplicates(subset="Patient ID", keep="last")
+# --- Step 2: Merge with GT dataframe ---
+# Ensure GT DataFrame has correct column names
+gt_df.columns = ['GT', 'PatientID', 'Side']
+gt_df['PatientID'] = gt_df['PatientID'].astype(int)  # Ensure same dtype
 
-# 5️⃣ Perform the merge
-# This will match on patientID and repeat the 'label' for every row
-# # with the same patientID
-# df = df.merge(all_labels, on="PatientID", how="left")
+# Merge based on PatientID and Side
+merged_df = pd.merge(radiomics_df, gt_df, on=['PatientID', 'Side'], how='left')
 
-# # ✅ Done! Now every row with the same patientID has the associated label
+# Optional: Drop rows with missing GT (i.e., no match found)
+merged_df = merged_df.dropna(subset=['GT'])
 
-df = df.merge(all_labels, left_on="PatientID", right_on="Patient ID", how="left")
-print(df.head())
-
-df.to_csv(r"Only_radiomics_based_classification\radiomics_features_washu2_p1_143_with_labels_sdf4.csv", index=False)
+# --- Result ---
+print(merged_df[['ImagePath', 'PatientID', 'Side', 'GT']].head())  # sample output

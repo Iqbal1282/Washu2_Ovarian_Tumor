@@ -22,6 +22,11 @@ This project focuses on the classification of ovarian tumors using transvaginal 
 pip install -r requirements.txt
 ```
 
+## Pyradiomedics DOCKER run
+```
+docker run --rm -it --publish 8888:8888 -v `pwd`:/data radiomics/pyradiomics
+```
+
 ## 🧠 Model Architecture
 ### Segmentation Model
 The segmentation model identifies and extracts the ovarian region from TVS images, helping focus the classifier on relevant anatomical structures.
