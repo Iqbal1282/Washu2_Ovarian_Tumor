@@ -272,7 +272,7 @@ class BinaryClassification(pl.LightningModule):
         self.boundary_encoder = MyEncoder()
         self.center_encoder = MyEncoder()
         
-        self.output_size = 5
+        self.output_size = 10
         if radiomics:  
             self.linear_radiomics = FCNetwork(input_size= radiomics_dim, hidden_sizes=[128, 64, 64], output_size= 32)  
             self.linear_radiomics_tail = FCNetwork(input_size= 32, hidden_sizes=[32, 32, 16], output_size= self.output_size)  
@@ -288,7 +288,7 @@ class BinaryClassification(pl.LightningModule):
 
 
         self.loss_fn = FocalLoss() 
-        self.loss_fn2 = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([5.0])) #FocalLoss()
+        self.loss_fn2 = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([3.0])) #FocalLoss()
 
         self.accuracy_metric = BinaryAccuracy()  # Accuracy metric using TorchMetrics
         self.auc_metric = torchmetrics.AUROC(task="binary")
@@ -344,9 +344,9 @@ class BinaryClassification(pl.LightningModule):
             x, y = batch 
             y2 = y.unsqueeze(-1).repeat((1, self.output_size))
             scores, scores_tail = self.forward(x)  
-            loss = self.loss_fn(scores, y.float())*0.6 + self.loss_fn(scores_tail[0], y2.float())*0.5 + \
+            loss = self.loss_fn(scores, y.float()) + self.loss_fn(scores_tail[0], y2.float())*0.2 + \
                         self.loss_fn(scores_tail[1], y2.float()) + self.loss_fn(scores_tail[2], y2.float()) + self.loss_fn(scores_tail[3], y2.float()) +\
-                        self.loss_fn2(scores, y.float())*0.5 + self.loss_fn2(scores_tail[0], y2.float())*0.8 + \
+                        self.loss_fn2(scores, y.float()) + self.loss_fn2(scores_tail[0], y2.float())*0.2 + \
                         self.loss_fn2(scores_tail[1], y2.float()) + self.loss_fn2(scores_tail[2], y2.float()) + self.loss_fn2(scores_tail[3], y2.float())
             
         else: 
