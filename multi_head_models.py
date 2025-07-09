@@ -38,7 +38,7 @@ class AsymmetricLoss(nn.Module):
         return loss.mean()
     
 class FocalLoss(nn.Module):
-    def __init__(self, alpha=0.25, gamma=2.0, reduction='mean'):
+    def __init__(self, alpha=0.25, gamma=3.0, reduction='mean'):
         super(FocalLoss, self).__init__()
         self.alpha = alpha
         self.gamma = gamma
@@ -288,7 +288,7 @@ class BinaryClassification(pl.LightningModule):
 
 
         self.loss_fn = FocalLoss() 
-        self.loss_fn2 = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([3.0])) #FocalLoss()
+        self.loss_fn2 = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([5.0])) #FocalLoss()
 
         self.accuracy_metric = BinaryAccuracy()  # Accuracy metric using TorchMetrics
         self.auc_metric = torchmetrics.AUROC(task="binary")
