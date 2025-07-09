@@ -272,7 +272,7 @@ class BinaryClassification(pl.LightningModule):
         self.boundary_encoder = MyEncoder()
         self.center_encoder = MyEncoder()
         
-        self.output_size = 1
+        self.output_size = 5
         if radiomics:  
             self.linear_radiomics = FCNetwork(input_size= radiomics_dim, hidden_sizes=[128, 64, 64], output_size= 32)  
             self.linear_radiomics_tail = FCNetwork(input_size= 32, hidden_sizes=[32, 32, 16], output_size= self.output_size)  
@@ -344,9 +344,9 @@ class BinaryClassification(pl.LightningModule):
             x, y = batch 
             y2 = y.unsqueeze(-1).repeat((1, self.output_size)).squeeze()
             scores, scores_tail = self.forward(x)  
-            loss = self.loss_fn(scores, y.float())*1.2 + self.loss_fn(scores_tail[0], y2.float())*0.2 + \
+            loss = self.loss_fn(scores, y.float())*2.0 + self.loss_fn(scores_tail[0], y2.float())*0.2 + \
                         self.loss_fn(scores_tail[1], y2.float()) + self.loss_fn(scores_tail[2], y2.float()) + self.loss_fn(scores_tail[3], y2.float()) +\
-                        self.loss_fn2(scores, y.float())*1.2 + self.loss_fn2(scores_tail[0], y2.float())*0.2 + \
+                        self.loss_fn2(scores, y.float())*2.0 + self.loss_fn2(scores_tail[0], y2.float())*0.2 + \
                         self.loss_fn2(scores_tail[1], y2.float()) + self.loss_fn2(scores_tail[2], y2.float()) + self.loss_fn2(scores_tail[3], y2.float())
             
         else: 
@@ -376,7 +376,7 @@ class BinaryClassification(pl.LightningModule):
             x = torch.cat((x, x2_radiomics), dim=1)
             return self.linear(x).squeeze(), (self.linear_trainable(x2.reshape(x.shape[0], -1)).squeeze() , self.linear_radiomics_tail(x2_radiomics).squeeze())
         else:   
-            x1 = self.linear(x1.reshape(x.shape[0], -1))*0
+            x1 = self.linear(x1.reshape(x.shape[0], -1))
             x2 = self.linear_trainable(x2.reshape(x.shape[0], -1))
             x3 = self.linear_boundary(x_boundary.reshape(x.shape[0], -1))
             x4 = self.linear_center(x_center.reshape(x.shape[0], -1)) 

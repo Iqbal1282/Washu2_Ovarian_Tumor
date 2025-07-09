@@ -10,7 +10,7 @@ from torchvision import transforms, datasets
 from datetime import datetime
 from multi_head_models import BinaryClassification
 from dataset_washu2 import Classificaiton_Dataset
-from dataset_washu2_p1_43 import Classificaiton_Dataset as Classificaiton_Dataset_test
+
 import subprocess
 import re
 from sklearn.metrics import roc_curve, auc
