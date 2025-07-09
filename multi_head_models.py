@@ -287,8 +287,8 @@ class BinaryClassification(pl.LightningModule):
         self.final_layer = FCNetwork(input_size= 4*self.output_size, hidden_sizes=[8, 12, 5], output_size= 1)
 
 
-        self.loss_fn = FocalLoss() 
-        self.loss_fn2 = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([5.0])) #FocalLoss()
+        self.loss_fn = FocalLoss(gamma= 1.5) 
+        self.loss_fn2 = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([2.0])) #FocalLoss()
 
         self.accuracy_metric = BinaryAccuracy()  # Accuracy metric using TorchMetrics
         self.auc_metric = torchmetrics.AUROC(task="binary")
