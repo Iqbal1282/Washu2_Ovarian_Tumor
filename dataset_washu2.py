@@ -82,7 +82,7 @@ train_transform = A.Compose([
     A.RandomRotate90(p=0.5),
 
 	A.ShiftScaleRotate(shift_limit=0.005, scale_limit=0.005, rotate_limit=10, border_mode=0, value=0, p=0.5), 
-    A.ElasticTransform(alpha = 1, sigma = 150, p=0.5),
+    A.ElasticTransform(alpha = 0.5, sigma = 250, p=0.5),
     A.GridDistortion(distort_limit=(-0.1,0.1), p=0.5),
 	A.GaussNoise(std_range=(0.02, 0.044), p=1),
     A.RandomBrightnessContrast(brightness_limit=(0, 0.01), contrast_limit=(0, 0.01), p=0.5),
