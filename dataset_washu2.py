@@ -82,14 +82,12 @@ train_transform = A.Compose([
     A.RandomRotate90(p=0.5),
 
 	A.ShiftScaleRotate(shift_limit=0.005, scale_limit=0.005, rotate_limit=10, border_mode=0, value=0, p=0.5), 
-    #A.ElasticTransform(alpha = 1, sigma = 50, p=0.8),
+    A.ElasticTransform(alpha = 1, sigma = 150, p=0.5),
     A.GridDistortion(distort_limit=(-0.1,0.1), p=0.5),
 	A.GaussNoise(std_range=(0.02, 0.044), p=1),
     A.RandomBrightnessContrast(brightness_limit=(0, 0.01), contrast_limit=(0, 0.01), p=0.5),
     # #A.CLAHE(clip_limit=.5, tile_grid_size=(8, 8), p=0.5),
     # A.Downscale(scale_range=(0.8,0.99), p=0.5),
-	
-
     A.Normalize(mean=(0.5,), std=(0.5,)),  # Adjust if using RGB
     ToTensorV2()
 ])
