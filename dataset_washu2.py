@@ -85,7 +85,7 @@ train_transform = A.Compose([
     #A.ElasticTransform(alpha = 1, sigma = 50, p=0.8),
     A.GridDistortion(distort_limit=(-0.1,0.1), p=0.5),
 	# #A.GaussNoise(var_limit=(0.2, 0.44), p=1),
-    A.RandomBrightnessContrast(brightness_limit=(0, 0.15), contrast_limit=(0, 0.05), p=0.5),
+    A.RandomBrightnessContrast(brightness_limit=(0, 0.01), contrast_limit=(0, 0.01), p=0.5),
     # #A.CLAHE(clip_limit=.5, tile_grid_size=(8, 8), p=0.5),
     # A.Downscale(scale_range=(0.8,0.99), p=0.5),
 	
