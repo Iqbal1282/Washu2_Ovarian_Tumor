@@ -87,7 +87,7 @@ train_transform = A.Compose([
 	A.GaussNoise(std_range=(0.02, 0.044), p=1),
     A.RandomBrightnessContrast(brightness_limit=(0, 0.01), contrast_limit=(0, 0.01), p=0.5),
     # #A.CLAHE(clip_limit=.5, tile_grid_size=(8, 8), p=0.5),
-    # A.Downscale(scale_range=(0.8,0.99), p=0.5),
+    A.Downscale(scale_range=(0.85,0.99), p=0.5),
     A.Normalize(mean=(0.5,), std=(0.5,)),  # Adjust if using RGB
     ToTensorV2()
 ])
