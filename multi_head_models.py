@@ -272,7 +272,7 @@ class BinaryClassification(pl.LightningModule):
         self.boundary_encoder = MyEncoder()
         self.center_encoder = MyEncoder()
         
-        self.output_size = 2
+        self.output_size = 1
         if radiomics:  
             self.linear_radiomics = FCNetwork(input_size= radiomics_dim, hidden_sizes=[128, 64, 64], output_size= 32)  
             self.linear_radiomics_tail = FCNetwork(input_size= 32, hidden_sizes=[32, 32, 16], output_size= self.output_size)  
@@ -342,11 +342,11 @@ class BinaryClassification(pl.LightningModule):
     def _common_step(self, batch, batch_idx):
         if len(batch) == 2: 
             x, y = batch 
-            y2 = y.unsqueeze(-1).repeat((1, self.output_size))
+            y2 = y.unsqueeze(-1).repeat((1, self.output_size)).squeeze()
             scores, scores_tail = self.forward(x)  
-            loss = self.loss_fn(scores, y.float())*0.2 + self.loss_fn(scores_tail[0], y2.float())*0.2 + \
+            loss = self.loss_fn(scores, y.float())*1.2 + self.loss_fn(scores_tail[0], y2.float())*0.2 + \
                         self.loss_fn(scores_tail[1], y2.float()) + self.loss_fn(scores_tail[2], y2.float()) + self.loss_fn(scores_tail[3], y2.float()) +\
-                        self.loss_fn2(scores, y.float())*0.2 + self.loss_fn2(scores_tail[0], y2.float())*0.2 + \
+                        self.loss_fn2(scores, y.float())*1.2 + self.loss_fn2(scores_tail[0], y2.float())*0.2 + \
                         self.loss_fn2(scores_tail[1], y2.float()) + self.loss_fn2(scores_tail[2], y2.float()) + self.loss_fn2(scores_tail[3], y2.float())
             
         else: 
