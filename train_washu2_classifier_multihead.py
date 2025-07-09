@@ -44,8 +44,8 @@ all_fprs = []
 all_tprs = []
 all_aucs = []
 
-project_title = "Ovarian Cancer Classification 4"
-Experiment_Group = f"Exp11:Previously_mean_auc83_{commit_log}"
+project_title = "Ovarian Cancer Classification 5"
+Experiment_Group = f"Exp1:{commit_string}_{commit_log}"
 train_config = {
         "k_fold": k_fold,
         "batch_size": batch_size,
