@@ -80,7 +80,7 @@ train_transform = A.Compose([
     A.VerticalFlip(p=0.5),
     A.RandomRotate90(p=0.5),
 
-	A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.05, rotate_limit=10, border_mode=0, value=0, p=0.5), 
+	A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.1, rotate_limit=10, border_mode=0, value=0, p=0.5), 
     A.ElasticTransform(alpha = 0.1, sigma = 50, p=0.8),
     A.GridDistortion(distort_limit=(-0.1,0.1), p=0.5),
 	#A.GaussNoise(var_limit=(0.2, 0.44), p=1),
@@ -238,7 +238,7 @@ class Classificaiton_Dataset(Dataset):
 	
 if __name__ == '__main__':
 	#Classificaiton_Dataset(phase = 'train', img_transform= transform_img)
-	train_dataset = Classificaiton_Dataset(phase = 'test', k_fold=10, fold= 2)
+	train_dataset = Classificaiton_Dataset(phase = 'train', k_fold=10, fold= 2)
 	print("train dataset size: ", len(train_dataset))
 	#print("test dataset size: ", len(train_dataset))
 	#print("data sample: ", train_dataset.data) 
