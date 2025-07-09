@@ -250,7 +250,7 @@ class BinaryClassification(pl.LightningModule):
         self.input_size = input_dim 
         self.hidden_sizes = [512, 128, 64, 32]
         self.hidden_sizes2 = [64, 32]
-        self.output_size = num_classes
+        self.output_size = num_classes 
 
         segmodel = Compress_Segmentor.load_from_checkpoint(encoder_weight_path, strict=True)
         encoder = segmodel.encode 

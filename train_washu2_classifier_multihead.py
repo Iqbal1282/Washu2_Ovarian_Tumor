@@ -19,7 +19,7 @@ from utils import plot_roc_curve
 import numpy as np
 import random 
 
-SEED = 41 
+SEED = 14 
 np.random.seed(SEED); torch.manual_seed(SEED) ; random.seed(SEED); 
 
 max_epochs = 250
