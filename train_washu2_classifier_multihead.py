@@ -22,7 +22,7 @@ import random
 SEED = 41 
 np.random.seed(SEED); torch.manual_seed(SEED) ; random.seed(SEED); 
 
-max_epochs = 50
+max_epochs = 250
 min_epochs = 1
 batch_size = 32
 check_val_every_n_epoch = 3
