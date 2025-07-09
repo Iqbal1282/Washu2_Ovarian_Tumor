@@ -24,7 +24,7 @@ np.random.seed(SEED); torch.manual_seed(SEED) ; random.seed(SEED);
 
 max_epochs = 250
 min_epochs = 1
-batch_size = 16
+batch_size = 32
 check_val_every_n_epoch = 3
 num_workers = 0
 k_fold = 5
