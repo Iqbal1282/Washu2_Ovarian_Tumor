@@ -10,7 +10,6 @@ from torchvision import transforms, datasets
 from datetime import datetime
 from models_imagenetbases import BinaryClassification
 from dataset_washu2 import Classificaiton_Dataset
-from dataset_washu2_p1_43 import Classificaiton_Dataset as Classificaiton_Dataset_test
 import subprocess
 import re
 from sklearn.metrics import roc_curve, auc
@@ -20,7 +19,7 @@ import numpy as np
 
 max_epochs = 250
 min_epochs = 1
-batch_size = 16
+batch_size = 32
 check_val_every_n_epoch = 3
 num_workers = 0
 k_fold = 5
@@ -40,8 +39,8 @@ all_fprs = []
 all_tprs = []
 all_aucs = []
 
-project_title = "Ovarian Cancer Classification 4"
-Experiment_Group = f"Exp7:Densenet_model_{commit_log}"
+project_title = "Ovarian Cancer Classification 6"
+Experiment_Group = f"Exp3:{commit_string}_{commit_log}"
 train_config = {
         "k_fold": k_fold,
         "batch_size": batch_size,

@@ -332,8 +332,8 @@ class BinaryClassification(pl.LightningModule):
         self.model = ImageNet_Models(name_model="densenet")
 
 
-        self.loss_fn = nn.BCEWithLogitsLoss()  #AsymmetricLoss()  #nn.BCEWithLogitsLoss()  # More stable than BCELoss
-        self.loss_fn2 = FocalLoss()
+        #self.loss_fn = nn.BCEWithLogitsLoss()  #AsymmetricLoss()  #nn.BCEWithLogitsLoss()  # More stable than BCELoss
+        self.loss_fn = FocalLoss()
         self.accuracy_metric = BinaryAccuracy()  # Accuracy metric using TorchMetrics
         self.auc_metric = torchmetrics.AUROC(task="binary")
 
