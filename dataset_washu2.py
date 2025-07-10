@@ -143,7 +143,7 @@ class Classificaiton_Dataset(Dataset):
 		df["PatientSide"] = df.apply(lambda row: f"p{row['Patient ID']}_{row['Side']}", axis=1)
 
 		# === Define test set based on Patient ID < 21 ===
-		df["IsTest"] = df["Patient ID"] >= 120
+		df["IsTest"] = df["Patient ID"] <= 20
 		test_case_set = set(df[df["IsTest"]]["PatientSide"].tolist())
 
 		# === Construct GT map ===
