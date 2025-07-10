@@ -272,7 +272,7 @@ class BinaryClassification(pl.LightningModule):
         self.boundary_encoder = MyEncoder()
         self.center_encoder = MyEncoder()
         
-        self.output_size = 1
+        self.output_size = 5
         if radiomics:  
             self.linear_radiomics = FCNetwork(input_size= radiomics_dim, hidden_sizes=[128, 64, 64], output_size= 32)  
             self.linear_radiomics_tail = FCNetwork(input_size= 32, hidden_sizes=[32, 32, 16], output_size= self.output_size)  
@@ -344,11 +344,10 @@ class BinaryClassification(pl.LightningModule):
             x, y = batch 
             y2 = y.unsqueeze(-1).repeat((1, self.output_size)).squeeze()
             scores, scores_tail = self.forward(x)  
-            loss = self.loss_fn(scores, y.float())*2.0 + self.loss_fn(scores_tail[0], y2.float())*0.2 + \
-                        self.loss_fn(scores_tail[1], y2.float()) + self.loss_fn(scores_tail[2], y2.float()) + self.loss_fn(scores_tail[3], y2.float()) +\
-                        self.loss_fn2(scores, y.float())*2.0 + self.loss_fn2(scores_tail[0], y2.float())*0.2 + \
-                        self.loss_fn2(scores_tail[1], y2.float()) + self.loss_fn2(scores_tail[2], y2.float()) + self.loss_fn2(scores_tail[3], y2.float())
-            
+            loss = self.loss_fn(scores, y.float()) #*2.0 + self.loss_fn(scores_tail[0], y2.float())*0.2 + \
+            # self.loss_fn(scores_tail[1], y2.float()) + self.loss_fn(scores_tail[2], y2.float()) + self.loss_fn(scores_tail[3], y2.float()) +\
+            # self.loss_fn2(scores, y.float())*2.0 + self.loss_fn2(scores_tail[0], y2.float())*0.2 + \
+            # self.loss_fn2(scores_tail[1], y2.float()) + self.loss_fn2(scores_tail[2], y2.float()) + self.loss_fn2(scores_tail[3], y2.float())
         else: 
             x, x2_rad,  y = batch
             scores, scores2 = self.forward(x, x2_radiomics=x2_rad)  
@@ -381,7 +380,7 @@ class BinaryClassification(pl.LightningModule):
             x3 = self.linear_boundary(x_boundary.reshape(x.shape[0], -1))
             x4 = self.linear_center(x_center.reshape(x.shape[0], -1)) 
             x =  torch.cat([x1, x2, x3 ,x4], dim = -1)  
-            return self.final_layer(x).squeeze(), (x1.squeeze(), x2.squeeze(), x3.squeeze(), x4.squeeze())
+            return self.final_layer(x).squeeze(), x #(x1.squeeze(), x2.squeeze(), x3.squeeze(), x4.squeeze())
 
 
     def training_step(self, batch, batch_idx):

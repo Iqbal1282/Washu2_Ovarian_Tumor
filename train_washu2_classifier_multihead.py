@@ -45,7 +45,7 @@ all_tprs = []
 all_aucs = []
 
 project_title = "Ovarian Cancer Classification 5"
-Experiment_Group = f"Exp2:{commit_string}_{commit_log}"
+Experiment_Group = f"Exp4:{commit_string}_{commit_log}"
 train_config = {
         "k_fold": k_fold,
         "batch_size": batch_size,
