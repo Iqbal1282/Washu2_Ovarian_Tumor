@@ -272,7 +272,7 @@ class BinaryClassification(pl.LightningModule):
         self.boundary_encoder = MyEncoder()
         self.center_encoder = MyEncoder()
         
-        self.output_size = 5
+        self.output_size = 1
         if radiomics:  
             self.linear_radiomics = FCNetwork(input_size= radiomics_dim, hidden_sizes=[128, 64, 64], output_size= 32)  
             self.linear_radiomics_tail = FCNetwork(input_size= 32, hidden_sizes=[32, 32, 16], output_size= self.output_size)  
