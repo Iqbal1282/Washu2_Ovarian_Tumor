@@ -344,9 +344,9 @@ class BinaryClassification(pl.LightningModule):
             x, y = batch 
             y2 = y.unsqueeze(-1).repeat((1, self.output_size)).squeeze()
             scores, scores_tail = self.forward(x)  
-            loss = self.loss_fn(scores, y.float())*0.02 + self.loss_fn(scores_tail[0], y2.float())*0.1 + \
+            loss = self.loss_fn(scores, y.float())*0.2 + self.loss_fn(scores_tail[0], y2.float())*0.1 + \
                         self.loss_fn(scores_tail[1], y2.float()) + self.loss_fn(scores_tail[2], y2.float()) + self.loss_fn(scores_tail[3], y2.float()) +\
-                        self.loss_fn2(scores, y.float())*0.02 + self.loss_fn2(scores_tail[0], y2.float())*0.1 + \
+                        self.loss_fn2(scores, y.float())*0.2 + self.loss_fn2(scores_tail[0], y2.float())*0.1 + \
                         self.loss_fn2(scores_tail[1], y2.float()) + self.loss_fn2(scores_tail[2], y2.float()) + self.loss_fn2(scores_tail[3], y2.float())
             
         else: 
