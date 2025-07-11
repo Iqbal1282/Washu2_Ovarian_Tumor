@@ -2,6 +2,8 @@ from sklearn.metrics import roc_curve, auc, accuracy_score
 import matplotlib.pyplot as plt
 import wandb
 import os 
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
 
 # def plot_roc_curve(y_true, y_probs, fold_idx=None, wandb_logger=None):
 #     fpr, tpr, thresholds = roc_curve(y_true, y_probs)

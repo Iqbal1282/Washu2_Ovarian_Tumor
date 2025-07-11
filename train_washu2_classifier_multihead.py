@@ -19,6 +19,9 @@ from utils import plot_roc_curve
 import numpy as np
 import random 
 
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
+
 SEED = 99 
 np.random.seed(SEED); torch.manual_seed(SEED) ; random.seed(SEED); 
 
