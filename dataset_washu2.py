@@ -33,8 +33,8 @@ import numpy as np
 from sklearn.model_selection import StratifiedKFold
 from collections import defaultdict
 
-import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend
+# import matplotlib
+# matplotlib.use('Agg')  # Use non-interactive backend
 
 
 # # Training transformations
