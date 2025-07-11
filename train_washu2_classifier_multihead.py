@@ -22,10 +22,10 @@ import random
 SEED = 99 
 np.random.seed(SEED); torch.manual_seed(SEED) ; random.seed(SEED); 
 
-max_epochs = 250
+max_epochs = 100
 min_epochs = 1
 batch_size = 32
-check_val_every_n_epoch = 3
+check_val_every_n_epoch = 1
 num_workers = 0
 k_fold = 5
 
