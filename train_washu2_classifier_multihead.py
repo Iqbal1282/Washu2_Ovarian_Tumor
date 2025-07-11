@@ -8,7 +8,7 @@ from torch import nn
 from torch.utils.data import DataLoader, random_split
 from torchvision import transforms, datasets
 from datetime import datetime
-from multi_head_models import BinaryClassification
+from multi_head_models2 import BinaryClassification
 from dataset_washu2 import Classificaiton_Dataset
 
 import subprocess
@@ -22,7 +22,7 @@ import random
 SEED = 99 
 np.random.seed(SEED); torch.manual_seed(SEED) ; random.seed(SEED); 
 
-max_epochs = 100
+max_epochs = 200
 min_epochs = 1
 batch_size = 32
 check_val_every_n_epoch = 3
@@ -44,7 +44,7 @@ all_fprs = []
 all_tprs = []
 all_aucs = []
 
-project_title = "Ovarian Cancer Classification 7"
+project_title = "Ovarian Cancer Classification 8"
 Experiment_Group = f"Exp4:{commit_string}_{commit_log}"
 train_config = {
         "k_fold": k_fold,

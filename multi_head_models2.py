@@ -247,6 +247,8 @@ class FCNetwork(nn.Module):
 class ImageNet_Model(nn.Module):
     def __init__(self, name = "resnet18", outsize = 1):
 
+        super().__init__()
+
         self.model = resnet18(weights=ResNet18_Weights.DEFAULT)
 
         old_conv = self.model.conv1
@@ -281,7 +283,7 @@ class BinaryClassification(pl.LightningModule):
         encoder = segmodel.encode 
         encoder.to(device = "cpu")
         self.encoder = encoder
-        self.encoder_trainable = MyEncoder() #Compress_Segmentor.load_from_checkpoint(encoder_weight_path, strict=True).encode
+        #self.encoder_trainable = MyEncoder() #Compress_Segmentor.load_from_checkpoint(encoder_weight_path, strict=True).encode
 
         # **Freeze the encoder weights**
         for param in self.encoder.parameters():
@@ -294,10 +296,14 @@ class BinaryClassification(pl.LightningModule):
         for param in self.sdf_model.parameters():
             param.requires_grad = False 
 
-        self.boundary_encoder = MyEncoder()
-        self.center_encoder = MyEncoder()
-        
         self.output_size = 5
+
+
+        self.full_encoder = ImageNet_Model(outsize= self.output_size)
+        self.boundary_encoder = ImageNet_Model(outsize= self.output_size) # MyEncoder()
+        self.center_encoder = ImageNet_Model(outsize= self.output_size) #MyEncoder()
+        
+        
         if radiomics:  
             self.linear_radiomics = FCNetwork(input_size= radiomics_dim, hidden_sizes=[128, 64, 64], output_size= 32)  
             self.linear_radiomics_tail = FCNetwork(input_size= 32, hidden_sizes=[32, 32, 16], output_size= self.output_size)  
@@ -305,9 +311,9 @@ class BinaryClassification(pl.LightningModule):
             self.linear_trainable = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes2, output_size= self.output_size)  
         else:
             self.linear = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
-            self.linear_trainable = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes2, output_size= self.output_size)   
-            self.linear_boundary = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
-            self.linear_center = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes, output_size= self.output_size)  
+            # self.linear_trainable = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes2, output_size= self.output_size)   
+            # self.linear_boundary = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
+            # self.linear_center = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes, output_size= self.output_size)  
 
         self.final_layer = FCNetwork(input_size= 4*self.output_size, hidden_sizes=[8, 12, 5], output_size= 1)
 
@@ -387,13 +393,13 @@ class BinaryClassification(pl.LightningModule):
 
     def forward(self, x, x2_radiomics=None):    
         x1 = self.encoder(x)
-        x2 = self.encoder_trainable(x)
+        x2 =   self.full_encoder(x) #self.encoder_trainable(x)
 
         x_sdf = self.sdf_model(x)
         x_sdf = self.normalize_sdf(x_sdf)
 
-        x_boundary = self.boundary_encoder(x*(x_sdf.abs()<.6))
-        x_center = self.center_encoder(x*(x_sdf<.3)) 
+        x3 = self.boundary_encoder(x*(x_sdf.abs()<.6))
+        x4 = self.center_encoder(x*(x_sdf<.3)) 
 
 
         if x2_radiomics is not None:
@@ -402,9 +408,9 @@ class BinaryClassification(pl.LightningModule):
             return self.linear(x).squeeze(), (self.linear_trainable(x2.reshape(x.shape[0], -1)).squeeze() , self.linear_radiomics_tail(x2_radiomics).squeeze())
         else:   
             x1 = self.linear(x1.reshape(x.shape[0], -1))
-            x2 = self.linear_trainable(x2.reshape(x.shape[0], -1))
-            x3 = self.linear_boundary(x_boundary.reshape(x.shape[0], -1))
-            x4 = self.linear_center(x_center.reshape(x.shape[0], -1)) 
+            #x2 = self.linear_trainable(x2.reshape(x.shape[0], -1))
+            #x3 = self.linear_boundary(x_boundary.reshape(x.shape[0], -1))
+            #x4 = self.linear_center(x_center.reshape(x.shape[0], -1)) 
             x =  torch.cat([x1, x2, x3 ,x4], dim = -1)  
             return self.final_layer(x).squeeze(), (x1.squeeze(), x2.squeeze(), x3.squeeze(), x4.squeeze())
 
