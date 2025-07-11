@@ -368,7 +368,7 @@ class BinaryClassification(pl.LightningModule):
         x_sdf = self.normalize_sdf(x_sdf)
 
         x_boundary = self.boundary_encoder(x*(x_sdf.abs()<.4))
-        x_center = self.center_encoder(x*(x_sdf<.4)) 
+        x_center = self.center_encoder(x*(x_sdf<.3)) 
 
 
         if x2_radiomics is not None:
