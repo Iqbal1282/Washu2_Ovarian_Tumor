@@ -33,6 +33,9 @@ import numpy as np
 from sklearn.model_selection import StratifiedKFold
 from collections import defaultdict
 
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
+
 
 # # Training transformations
 # common_train_transform = A.Compose([
@@ -81,8 +84,8 @@ train_transform = A.Compose([
 	A.GaussNoise(std_range=(0.02, 0.1), p=0.6),
 	
 	A.RandomBrightnessContrast(brightness_limit=(-0.01, 0.01), contrast_limit=(-0.01, 0.01), p=0.5),
-    A.ElasticTransform(alpha = 5, sigma = 250, p=0.5),
-    A.GridDistortion(distort_limit=(-0.1,0.1), p=0.5),
+    A.ElasticTransform(alpha = 10, sigma = 250, p=0.5),
+    A.GridDistortion(distort_limit=(-0.2,0.2), p=0.5),
     # #A.CLAHE(clip_limit=.5, tile_grid_size=(8, 8), p=0.5),
 	A.ShiftScaleRotate(shift_limit=(-0.005,0.005), scale_limit=(-0.2, 0.005), rotate_limit=(-30,30), border_mode=0, value=0, p=0.9), 
     A.Downscale(scale_range=(0.85,0.99), p=0.5),
