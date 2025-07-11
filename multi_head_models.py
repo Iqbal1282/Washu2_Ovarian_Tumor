@@ -440,7 +440,7 @@ class BinaryClassification(pl.LightningModule):
         acc = self.accuracy_metric.compute()
         auc =  self.auc_metric.compute()
         w_acc =  self.compute_weighted_accuracy()
-        combined_score =  0.5 * w_acc + 0.2 * acc +  0.3 * auc 
+        combined_score =  0.4 * w_acc + 0.2 * acc +  0.4 * auc 
         self.log("validation/accuracy", acc, prog_bar=True)
         self.log("validation/auc", auc, prog_bar=True)
         self.log("validation/weighted_accuracy", w_acc, prog_bar=True)
