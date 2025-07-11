@@ -263,7 +263,7 @@ class BinaryClassification(pl.LightningModule):
             param.requires_grad = False
 
         self.sdf_model = SDFModel()
-        sdf_model_path = "./checkpoints/deeplabv3/model_20250620_211018/epoch_16"
+        sdf_model_path = r"checkpoints\deeplabv3_sdf\model_20250711_110759\epoch_47" #"./checkpoints/deeplabv3/model_20250620_211018/epoch_16"
         self.sdf_model.load_state_dict(torch.load(sdf_model_path))
 
         for param in self.sdf_model.parameters():
