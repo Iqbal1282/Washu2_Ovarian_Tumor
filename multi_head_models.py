@@ -367,7 +367,7 @@ class BinaryClassification(pl.LightningModule):
         x_sdf = self.sdf_model(x)
         x_sdf = self.normalize_sdf(x_sdf)
 
-        x_boundary = self.boundary_encoder(x*(x_sdf.abs()<.4))
+        x_boundary = self.boundary_encoder(x*(x_sdf.abs()<.6))
         x_center = self.center_encoder(x*(x_sdf<.3)) 
 
 
@@ -440,7 +440,7 @@ class BinaryClassification(pl.LightningModule):
         acc = self.accuracy_metric.compute()
         auc =  self.auc_metric.compute()
         w_acc =  self.compute_weighted_accuracy()
-        combined_score =  0.2 * w_acc + 0.3 * acc +  0.5 * auc 
+        combined_score =  0.5 * w_acc + 0.2 * acc +  0.3 * auc 
         self.log("validation/accuracy", acc, prog_bar=True)
         self.log("validation/auc", auc, prog_bar=True)
         self.log("validation/weighted_accuracy", w_acc, prog_bar=True)
