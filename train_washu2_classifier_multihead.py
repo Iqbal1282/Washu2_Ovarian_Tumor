@@ -137,8 +137,19 @@ for fold in range(k_fold):
 
 
     model = BinaryClassification(input_dim= 64, num_classes= 1,  encoder_weight_path = r"checkpoints\normtverskyloss_binary_segmentation\a56e77a\best-checkpoint-epoch=77-validation\loss=0.2544.ckpt", radiomics= False)
-    mmotu_checkpoint = torch.load("checkpoints\mmotu_classfication\auc=0.8749.ckpt", map_location="cpu")
-    missing, unexpected = model.load_state_dict(mmotu_checkpoint["state_dict"], strict=False)
+    mmotu_checkpoint = torch.load(r"checkpoints\mmotu_classfication\auc=0.8749.ckpt", map_location="cpu")
+
+    # Step 3: Filter out incompatible layers
+    model_state = model.state_dict()
+    filtered_checkpoint = {
+        k: v for k, v in mmotu_checkpoint.items()
+        if k in model_state and v.shape == model_state[k].shape
+    }
+
+    # Step 4: Load filtered state_dict
+    missing, unexpected = model.load_state_dict(filtered_checkpoint, strict=False)
+
+    #missing, unexpected = model.load_state_dict(mmotu_checkpoint["state_dict"], strict=False)
 
     # Optionally, log missing/unexpected keys
     print("Missing keys:", missing)

@@ -297,7 +297,7 @@ class BinaryClassification(pl.LightningModule):
         for param in self.sdf_model.parameters():
             param.requires_grad = False 
 
-        self.output_size = 5
+        self.output_size = 8
 
 
         self.full_encoder = ImageNet_Model(outsize= self.output_size)
