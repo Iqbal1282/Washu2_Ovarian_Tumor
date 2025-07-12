@@ -290,7 +290,8 @@ class BinaryClassification(pl.LightningModule):
             param.requires_grad = False
 
         self.sdf_model = SDFModel()
-        sdf_model_path = r"checkpoints\deeplabv3_sdf_randomcrop\model_20250711_113651\epoch_49" # "./checkpoints/deeplabv3/model_20250620_211018/epoch_16" # #
+        sdf_model_path = r"checkpoints\deeplabv3_sdf_randomcrop\model_20250711_201243\epoch_84"
+        #r"checkpoints\deeplabv3_sdf_randomcrop\model_20250711_113651\epoch_49" # "./checkpoints/deeplabv3/model_20250620_211018/epoch_16" # #
         self.sdf_model.load_state_dict(torch.load(sdf_model_path))
 
         for param in self.sdf_model.parameters():
@@ -375,9 +376,9 @@ class BinaryClassification(pl.LightningModule):
             x, y = batch 
             y2 = y.unsqueeze(-1).repeat((1, self.output_size)).squeeze()
             scores, scores_tail = self.forward(x)  
-            loss = self.loss_fn(scores, y.float())*0.1 + self.loss_fn(scores_tail[0], y2.float())*0.1 + \
+            loss = self.loss_fn(scores, y.float())*0.2 + self.loss_fn(scores_tail[0], y2.float())*0.1 + \
                         self.loss_fn(scores_tail[1], y2.float()) + self.loss_fn(scores_tail[2], y2.float()) + self.loss_fn(scores_tail[3], y2.float()) +\
-                        self.loss_fn2(scores, y.float())*0.1 + self.loss_fn2(scores_tail[0], y2.float())*0.1 + \
+                        self.loss_fn2(scores, y.float())*0.2 + self.loss_fn2(scores_tail[0], y2.float())*0.1 + \
                         self.loss_fn2(scores_tail[1], y2.float()) + self.loss_fn2(scores_tail[2], y2.float()) + self.loss_fn2(scores_tail[3], y2.float())
             
         else: 
