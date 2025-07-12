@@ -401,8 +401,8 @@ class BinaryClassification(pl.LightningModule):
 
         # --- Generate random thresholds ---
         # --- Generate random global thresholds (single value per pass) ---
-        lower_thresh = torch.empty(1).uniform_(-0.1, -0.05).item()
-        upper_thresh = torch.empty(1).uniform_(0.35, 0.45).item()
+        lower_thresh = torch.empty(1).uniform_(-0.2, -0.05).item()
+        upper_thresh = torch.empty(1).uniform_(0.35, 0.6).item()
         center_thresh = torch.empty(1).uniform_(0.01, 0.1).item()
 
         # --- Apply random masks ---
