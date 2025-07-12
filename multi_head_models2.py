@@ -399,7 +399,7 @@ class BinaryClassification(pl.LightningModule):
         x_sdf = self.sdf_model(x)
         x_sdf = self.normalize_sdf(x_sdf)
 
-        x3 = self.boundary_encoder(x*(x_sdf.abs()<.6))
+        x3 = self.boundary_encoder(x*(x_sdf.abs()<.4))
         x4 = self.center_encoder(x*(x_sdf<.3)) 
 
 
