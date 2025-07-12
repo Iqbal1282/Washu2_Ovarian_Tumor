@@ -311,7 +311,7 @@ class BinaryClassification(pl.LightningModule):
             self.linear = FCNetwork(input_size= self.input_size*2+32, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
             self.linear_trainable = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes2, output_size= self.output_size)  
         else:
-            self.linear = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
+            self.linear = FCNetwork(input_size= 256, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
             # self.linear_trainable = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes2, output_size= self.output_size)   
             # self.linear_boundary = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
             # self.linear_center = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes, output_size= self.output_size)  
@@ -418,7 +418,9 @@ class BinaryClassification(pl.LightningModule):
             x = torch.cat((x, x2_radiomics), dim=1)
             return self.linear(x).squeeze(), (self.linear_trainable(x2.reshape(x.shape[0], -1)).squeeze() , self.linear_radiomics_tail(x2_radiomics).squeeze())
         else:   
+            #print(x1.shape)
             x1 = self.linear(x1.reshape(x.shape[0], -1))
+            
             #x2 = self.linear_trainable(x2.reshape(x.shape[0], -1))
             #x3 = self.linear_boundary(x_boundary.reshape(x.shape[0], -1))
             #x4 = self.linear_center(x_center.reshape(x.shape[0], -1)) 
@@ -542,7 +544,7 @@ if __name__ == '__main__':
                                  radiomics= False)
     print(model)
     model.eval()
-    print(model(torch.randn(1, 1,256, 256))) #, torch.randn(1, 1,256, 256)).shape)
+    print(model(torch.randn(1, 1,512, 512))) #, torch.randn(1, 1,256, 256)).shape)
 
     # model = MyEncoder()
     # model.eval()
