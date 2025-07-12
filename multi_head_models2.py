@@ -399,8 +399,18 @@ class BinaryClassification(pl.LightningModule):
         x_sdf = self.sdf_model(x)
         x_sdf = self.normalize_sdf(x_sdf)
 
-        x3 = self.boundary_encoder(x*(x_sdf.abs()<.5))
-        x4 = self.center_encoder(x*(x_sdf<.05)) 
+        # --- Generate random thresholds ---
+        # --- Generate random global thresholds (single value per pass) ---
+        lower_thresh = torch.empty(1).uniform_(-0.1, -0.05).item()
+        upper_thresh = torch.empty(1).uniform_(0.35, 0.45).item()
+        center_thresh = torch.empty(1).uniform_(0.01, 0.1).item()
+
+        # --- Apply random masks ---
+        boundary_mask = (x_sdf < upper_thresh) & (x_sdf > lower_thresh)
+        center_mask = (x_sdf < center_thresh)
+
+        x3 = self.boundary_encoder(x * boundary_mask)
+        x4 = self.center_encoder(x * center_mask)
 
 
         if x2_radiomics is not None:
