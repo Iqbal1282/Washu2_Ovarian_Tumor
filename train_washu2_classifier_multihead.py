@@ -22,7 +22,7 @@ import random
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 
-SEED = 99 
+SEED = 42
 np.random.seed(SEED); torch.manual_seed(SEED) ; random.seed(SEED); 
 
 max_epochs = 100
