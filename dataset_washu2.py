@@ -72,12 +72,12 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
 train_transform = A.Compose([
-    A.PadIfNeeded(min_height=256, min_width=256, border_mode=0, value=0, mask_value=0),
+    A.PadIfNeeded(min_height=512, min_width=512, border_mode=0, value=0, mask_value=0),
     #A.RandomCrop(256, 256),
 	# A.RandomResizedCrop(scale=(0.95, 1.0),
 	# 					ratio=(0.95, 1.05),
 	# 					size=(256, 256)), 
-	A.Resize(256, 256),
+	A.Resize(512, 512),
     A.HorizontalFlip(p=0.5),
     #A.VerticalFlip(p=0.5),
     #A.RandomRotate90(p=0.5),
@@ -96,8 +96,8 @@ train_transform = A.Compose([
 
 
 val_transform = A.Compose([
-    A.PadIfNeeded(min_height=256, min_width=256, border_mode=0, value=0, mask_value=0),
-    A.Resize(256, 256),
+    A.PadIfNeeded(min_height=512, min_width=512, border_mode=0, value=0, mask_value=0),
+    A.Resize(512, 512),
     A.Normalize(mean=(0.5,), std=(0.5,)),
     ToTensorV2()
 ])
