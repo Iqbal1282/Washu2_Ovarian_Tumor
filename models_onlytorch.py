@@ -361,9 +361,11 @@ class BinaryClassificationTorch(nn.Module):
                     sum(self.loss_fn2(t, y2.float()) for t in tails[1:]))
         return loss
 
-    def predict_on_loader(self, dataloader, device="cpu"):
+    def predict_on_loader(self, dataloader):
         self.eval()
         all_probs, all_targets = [], []
+
+        device = next(self.parameters()).device  # Automatically detect model's device
 
         with torch.no_grad():
             for batch in dataloader:

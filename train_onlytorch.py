@@ -11,8 +11,9 @@ from sklearn.metrics import roc_curve, auc
 from torch.utils.data import DataLoader
 from models_onlytorch import BinaryClassificationTorch
 from dataset_washu2 import Classificaiton_Dataset
-from utils import plot_roc_curve
-
+from utils import plot_roc_curve, compute_weighted_accuracy
+from tqdm import tqdm 
+from torchmetrics.classification import BinaryAccuracy, BinaryAUROC
 # Set deterministic behavior
 SEED = 42
 np.random.seed(SEED); torch.manual_seed(SEED); random.seed(SEED)
@@ -22,6 +23,8 @@ max_epochs = 100
 batch_size = 16
 k_fold = 5
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 
 # Git Commit Info
 try:
@@ -33,7 +36,7 @@ except Exception as e:
     print(f"Git commit fetch failed: {e}")
 
 # WandB Settings
-project_title = "Torch: Ovarian Cancer Classification 10"
+project_title = "Torch Ovarian Cancer Classification 10"
 experiment_group = f"Exp4:{commit_string}_{commit_log}"
 train_config = {
     "k_fold": k_fold,
@@ -69,10 +72,14 @@ for fold in range(k_fold):
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
     best_val_auc = -1
-    best_model_state = None
+    best_model_state = None 
+    
+    # Metrics
+    accuracy_metric = BinaryAccuracy().to(device)
+    auc_metric = BinaryAUROC().to(device)
 
     # --- Training Loop ---
-    for epoch in range(max_epochs):
+    for epoch in tqdm(range(max_epochs), leave= False):
         model.train()
         epoch_loss = 0.0
 
@@ -92,11 +99,47 @@ for fold in range(k_fold):
         wandb.log({f"train/loss_fold_{fold}": avg_train_loss, "epoch": epoch})
 
         # --- Validation Evaluation ---
-        y_true, y_probs = model.get_predictions_on_loader(val_loader)
-        fpr, tpr, roc_auc = plot_roc_curve(y_true, y_probs, fold_idx=fold + 1)
+        model.eval()
+        y_true, y_probs = [], []
+        with torch.no_grad():
+            for batch in val_loader:
+                if len(batch) == 2:
+                    x, y = batch
+                    x, y = x.to(device), y.to(device)
+                    scores, _ = model(x)
+                else:
+                    x, x2, y = batch
+                    x, x2, y = x.to(device), x2.to(device), y.to(device)
+                    scores, _ = model(x, x2)
+
+                probs = torch.sigmoid(scores)
+                y_probs.append(probs)
+                y_true.append(y)
+
+                accuracy_metric.update(probs, y.int())
+                auc_metric.update(probs, y.int())
+
+        y_true = torch.cat(y_true)
+        y_probs = torch.cat(y_probs)
+
+        # Compute metrics
+        val_accuracy = accuracy_metric.compute().item()
+        val_auc = auc_metric.compute().item()
+        val_wacc = compute_weighted_accuracy(y_probs, y_true)
+
+        # Reset metrics
+        accuracy_metric.reset()
+        auc_metric.reset()
+
+        # ROC
+        fpr, tpr, roc_auc = plot_roc_curve(y_true.cpu().numpy(), y_probs.cpu().numpy(), fold_idx=fold + 1)
+
+        # Log all metrics
         wandb.log({
-            f"val/roc_auc_fold_{fold}": roc_auc,
-            f"val/roc_curve_fold_{fold}": wandb.Image(f"plots/roc_curve_fold_{fold+1}.png"),
+            f"val/roc_auc_fold_{fold}": val_auc,
+            f"val/accuracy_fold_{fold}": val_accuracy,
+            f"val/weighted_accuracy_fold_{fold}": val_wacc,
+            #f"val/roc_curve_fold_{fold}": wandb.Image(f"plots/roc_curve_fold_{fold+1}.png"),
             "epoch": epoch
         })
 
@@ -106,10 +149,10 @@ for fold in range(k_fold):
 
     # --- Load Best Model and Test ---
     model.load_state_dict(best_model_state)
-    y_true, y_probs = model.get_predictions_on_loader(test_loader)
+    y_true, y_probs = model.predict_on_loader(test_loader)
     fpr, tpr, roc_auc = plot_roc_curve(y_true, y_probs, fold_idx=fold + 1)
     wandb.log({
-        f"test/roc_auc_fold_{fold}": roc_auc,
+        #f"test/roc_auc_fold_{fold}": roc_auc,
         f"test/roc_curve_fold_{fold}": wandb.Image(f"plots/roc_curve_fold_{fold+1}.png"),
     })
     

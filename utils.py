@@ -61,3 +61,20 @@ def plot_roc_curve(y_true, y_probs, fold_idx=None, wandb_logger=None):
         })
 
     return fpr, tpr, roc_auc
+
+
+def compute_weighted_accuracy(preds, targets):
+    preds = (preds > 0.5).int()
+    targets = targets.int()
+
+    pos_mask = targets == 1
+    neg_mask = targets == 0
+
+    pos_correct = (preds[pos_mask] == 1).sum()
+    neg_correct = (preds[neg_mask] == 0).sum()
+    pos_total = pos_mask.sum()
+    neg_total = neg_mask.sum()
+
+    pos_acc = pos_correct / (pos_total + 1e-8)
+    neg_acc = neg_correct / (neg_total + 1e-8)
+    return ((pos_acc + neg_acc) / 2).item()
