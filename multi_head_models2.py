@@ -315,7 +315,7 @@ class BinaryClassification(pl.LightningModule):
             # self.linear_boundary = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes, output_size= self.output_size)
             # self.linear_center = FCNetwork(input_size= self.input_size, hidden_sizes=self.hidden_sizes, output_size= self.output_size)  
 
-        self.final_layer = FCNetwork(input_size= 4*self.output_size, hidden_sizes=[8, 12, 5], output_size= 1)
+        self.final_layer = FCNetwork(input_size= 4*self.output_size, hidden_sizes=[24, 12, 5], output_size= 1)
 
 
         self.loss_fn = FocalLoss() 
@@ -375,9 +375,9 @@ class BinaryClassification(pl.LightningModule):
             x, y = batch 
             y2 = y.unsqueeze(-1).repeat((1, self.output_size)).squeeze()
             scores, scores_tail = self.forward(x)  
-            loss = self.loss_fn(scores, y.float())*2 + self.loss_fn(scores_tail[0], y2.float())*0.1 + \
+            loss = self.loss_fn(scores, y.float())*0.05 + self.loss_fn(scores_tail[0], y2.float())*0.1 + \
                         self.loss_fn(scores_tail[1], y2.float()) + self.loss_fn(scores_tail[2], y2.float()) + self.loss_fn(scores_tail[3], y2.float()) +\
-                        self.loss_fn2(scores, y.float())*2 + self.loss_fn2(scores_tail[0], y2.float())*0.1 + \
+                        self.loss_fn2(scores, y.float())*0.05 + self.loss_fn2(scores_tail[0], y2.float())*0.1 + \
                         self.loss_fn2(scores_tail[1], y2.float()) + self.loss_fn2(scores_tail[2], y2.float()) + self.loss_fn2(scores_tail[3], y2.float())
             
         else: 
