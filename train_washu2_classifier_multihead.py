@@ -137,6 +137,14 @@ for fold in range(k_fold):
 
 
     model = BinaryClassification(input_dim= 64, num_classes= 1,  encoder_weight_path = r"checkpoints\normtverskyloss_binary_segmentation\a56e77a\best-checkpoint-epoch=77-validation\loss=0.2544.ckpt", radiomics= False)
+    mmotu_checkpoint = torch.load("checkpoints\mmotu_classfication\auc=0.8749.ckpt", map_location="cpu")
+    missing, unexpected = model.load_state_dict(mmotu_checkpoint["state_dict"], strict=False)
+
+    # Optionally, log missing/unexpected keys
+    print("Missing keys:", missing)
+    print("Unexpected keys:", unexpected)
+
+    
     trainer.fit(model, train_loader, val_loader)
 
 
