@@ -399,8 +399,8 @@ class BinaryClassification(pl.LightningModule):
         x_sdf = self.sdf_model(x)
         x_sdf = self.normalize_sdf(x_sdf)
 
-        x3 = self.boundary_encoder(x*(x_sdf.abs()<.4))
-        x4 = self.center_encoder(x*(x_sdf<.15)) 
+        x3 = self.boundary_encoder(x*(x_sdf.abs()<.5))
+        x4 = self.center_encoder(x*(x_sdf<.05)) 
 
 
         if x2_radiomics is not None:
@@ -472,7 +472,7 @@ class BinaryClassification(pl.LightningModule):
         acc = self.accuracy_metric.compute()
         auc =  self.auc_metric.compute()
         w_acc =  self.compute_weighted_accuracy()
-        combined_score =  0.2*w_acc  + 0.3 * acc +  0.5 * auc 
+        combined_score =  0.3*w_acc  + 0.3 * acc +  0.4 * auc 
         self.log("validation/accuracy", acc, prog_bar=True)
         self.log("validation/auc", auc, prog_bar=True)
         self.log("validation/weighted_accuracy", w_acc, prog_bar=True)
