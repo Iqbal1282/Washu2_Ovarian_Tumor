@@ -112,20 +112,24 @@ for fold in range(k_fold):
                     x, x2, y = x.to(device), x2.to(device), y.to(device)
                     scores, tails = model(x, x2)
 
-                # Ensure main scores are 1D
-                scores = scores.view(-1)
+                # # Ensure main scores are 1D
+                # scores = scores.view(-1)
 
-                # Stack all tails after computing per-sample means
-                tail_means = [tail.mean(dim=-1) for tail in tails]  # Each: (batch_size,)
-                tail_means_stacked = torch.stack(tail_means, dim=0)  # Shape: (num_tails, batch_size)
+                # # Stack all tails after computing per-sample means
+                # tail_means = [tail.mean(dim=-1) for tail in tails]  # Each: (batch_size,)
+                # tail_means_stacked = torch.stack(tail_means, dim=0)  # Shape: (num_tails, batch_size)
 
-                # Compute median across tails: shape (batch_size,)
-                tail_median = torch.median(tail_means_stacked, dim=0).values
+                # # Compute median across tails: shape (batch_size,)
+                # tail_median = torch.median(tail_means_stacked, dim=0).values
 
-                # Average main score and tail median
-                final_score = 0.5 * scores + 0.5 * tail_median
+                # # Average main score and tail median
+                # final_score = 0.5 * scores + 0.5 * tail_median
 
-                scores = final_score
+                # scores = final_score
+
+                scores = scores*0.2
+                for  s in tails: 
+                    scores += s.mean(dim = -1)*0.2
 
                 probs = torch.sigmoid(scores)
                 y_probs.append(probs)
