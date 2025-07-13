@@ -70,7 +70,7 @@ for fold in range(k_fold):
                                  sdf_model_path= r"checkpoints\deeplabv3_sdf_randomcrop\model_20250711_201243\epoch_84",
                                  radiomics= False).to(device)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=5e-5, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-5)
     best_val_auc = -1
     best_combined_score = -1 
     best_model_state = None 
