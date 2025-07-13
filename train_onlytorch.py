@@ -165,13 +165,13 @@ for fold in range(k_fold):
             "epoch": epoch
         })
 
-        # if roc_auc > best_val_auc:
-        #     best_val_auc = roc_auc
-        #     best_model_state = model.state_dict()
-
-        if combined_score > best_combined_score:
-            best_combined_score = roc_auc
+        if roc_auc > best_val_auc:
+            best_val_auc = roc_auc
             best_model_state = model.state_dict()
+
+        # if combined_score > best_combined_score:
+        #     best_combined_score = roc_auc
+        #     best_model_state = model.state_dict()
 
     # --- Load Best Model and Test ---
     model.load_state_dict(best_model_state)
