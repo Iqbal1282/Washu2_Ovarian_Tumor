@@ -353,10 +353,10 @@ class BinaryClassificationTorch(nn.Module):
         else:
             score, tails = self.forward(x)
             y2 = y.unsqueeze(-1).repeat((1, self.output_size)).squeeze()
-            loss = (self.loss_fn(score, y.float()) * 0.2 +
+            loss = (self.loss_fn(score, y.float()) * 0.02 +
                     self.loss_fn(tails[0], y2.float()) * 0.1 +
                     sum(self.loss_fn(t, y2.float()) for t in tails[1:]) +
-                    self.loss_fn2(score, y.float()) * 0.2 +
+                    self.loss_fn2(score, y.float()) * 0.02 +
                     self.loss_fn2(tails[0], y2.float()) * 0.1 +
                     sum(self.loss_fn2(t, y2.float()) for t in tails[1:]))
         return loss
