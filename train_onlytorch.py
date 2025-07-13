@@ -72,6 +72,7 @@ for fold in range(k_fold):
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
     best_val_auc = -1
+    best_combined_score = -1 
     best_model_state = None 
     
     # Metrics
@@ -153,6 +154,8 @@ for fold in range(k_fold):
         # ROC
         fpr, tpr, roc_auc = plot_roc_curve(y_true.cpu().numpy(), y_probs.cpu().numpy(), fold_idx=fold + 1)
 
+        combined_score = 0.2*val_wacc + 0.3* val_accuracy + 0.5* roc_auc 
+
         # Log all metrics
         wandb.log({
             f"val/roc_auc_fold_{fold}": val_auc,
@@ -162,8 +165,12 @@ for fold in range(k_fold):
             "epoch": epoch
         })
 
-        if roc_auc > best_val_auc:
-            best_val_auc = roc_auc
+        # if roc_auc > best_val_auc:
+        #     best_val_auc = roc_auc
+        #     best_model_state = model.state_dict()
+
+        if combined_score > best_combined_score:
+            best_combined_score = roc_auc
             best_model_state = model.state_dict()
 
     # --- Load Best Model and Test ---
