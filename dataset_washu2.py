@@ -144,8 +144,11 @@ class Classificaiton_Dataset(Dataset):
 		df["PatientSide"] = df.apply(lambda row: f"p{row['Patient ID']}_{row['Side']}", axis=1)
 
 		# === Define test set based on Patient ID < 21 ===
-		df["IsTest"] = df["Patient ID"] >= 120
+		#df["IsTest"] = df["Patient ID"] >= 120
+		df["IsTest"] = df["Patient ID"].between(60, 75)
 		test_case_set = set(df[df["IsTest"]]["PatientSide"].tolist())
+
+		
 
 		# === Construct GT map ===
 		grouped_gt = df.groupby("PatientSide")["GT"].agg(lambda x: x.mode()[0])
@@ -238,7 +241,7 @@ class Classificaiton_Dataset(Dataset):
 	
 if __name__ == '__main__':
 	#Classificaiton_Dataset(phase = 'train', img_transform= transform_img)
-	train_dataset = Classificaiton_Dataset(phase = 'train', k_fold=10, fold= 2)
+	train_dataset = Classificaiton_Dataset(phase = 'test', k_fold=10, fold= 2)
 	print("train dataset size: ", len(train_dataset))
 	#print("test dataset size: ", len(train_dataset))
 	#print("data sample: ", train_dataset.data) 
