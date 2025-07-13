@@ -376,8 +376,12 @@ class BinaryClassificationTorch(nn.Module):
                 else:
                     x, x2, y = batch
                     x, x2, y = x.to(device), x2.to(device), y.to(device)
-                    scores, _ = self.forward(x, x2)
+                    scores, scores2 = self.forward(x, x2)
 
+                    scores2 = scores2.mean(dim = -1)
+
+                    for  s in scores2: 
+                        scores += s.mean(dim = -1)*0.1
                 probs = torch.sigmoid(scores)
                 all_probs.append(probs.cpu())
                 all_targets.append(y.cpu())
