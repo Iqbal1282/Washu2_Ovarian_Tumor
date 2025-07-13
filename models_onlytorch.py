@@ -324,9 +324,9 @@ class BinaryClassificationTorch(nn.Module):
         x_sdf = self.sdf_model(x)
         x_sdf = self.normalize_sdf(x_sdf)
 
-        lower_thresh = torch.empty(1).uniform_(-0.45, -0.35).item()
-        upper_thresh = torch.empty(1).uniform_(0.35, 0.45).item()
-        center_thresh = torch.empty(1).uniform_(0.3, 0.4).item()
+        lower_thresh = torch.empty(1).uniform_(-0.45, -0.15).item()
+        upper_thresh = torch.empty(1).uniform_(0.35, 0.65).item()
+        center_thresh = torch.empty(1).uniform_(0.1, 0.25).item()
 
         boundary_mask = (x_sdf < upper_thresh) & (x_sdf > lower_thresh)
         center_mask = (x_sdf < center_thresh)
