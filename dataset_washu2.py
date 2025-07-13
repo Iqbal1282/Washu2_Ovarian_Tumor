@@ -84,7 +84,7 @@ train_transform = A.Compose([
 	A.ShiftScaleRotate(shift_limit=0.005, scale_limit=0.005, rotate_limit=10, border_mode=0, value=0, p=0.5), 
     A.ElasticTransform(alpha = 5, sigma = 250, p=0.5),
     A.GridDistortion(distort_limit=(-0.2,0.2), p=0.5),
-	A.GaussNoise(std_range=(0.02, 0.1), p=0.9),
+	A.GaussNoise(std_range=(0.02, 0.05), p=0.9),
     A.RandomBrightnessContrast(brightness_limit=(0, 0.01), contrast_limit=(0, 0.01), p=0.5),
     # #A.CLAHE(clip_limit=.5, tile_grid_size=(8, 8), p=0.5),
     A.Downscale(scale_range=(0.85,0.99), p=0.5),
@@ -144,7 +144,7 @@ class Classificaiton_Dataset(Dataset):
 		df["PatientSide"] = df.apply(lambda row: f"p{row['Patient ID']}_{row['Side']}", axis=1)
 
 		# === Define test set based on Patient ID < 21 ===
-		df["IsTest"] = df["Patient ID"] <= 20
+		df["IsTest"] = df["Patient ID"] >= 120
 		test_case_set = set(df[df["IsTest"]]["PatientSide"].tolist())
 
 		# === Construct GT map ===
