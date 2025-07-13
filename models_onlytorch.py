@@ -380,9 +380,9 @@ class BinaryClassificationTorch(nn.Module):
                     x, x2, y = x.to(device), x2.to(device), y.to(device)
                     scores, tails = self.forward(x, x2)
 
-                scores = scores*0.2
+                scores = scores*0.4
                 for  s in tails: 
-                    scores += s.mean(dim = -1)*0.2
+                    scores += s.mean(dim = -1)*0.15
 
                 # # Ensure main scores are 1D
                 # scores = scores.view(-1)

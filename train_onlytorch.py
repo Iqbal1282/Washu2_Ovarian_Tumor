@@ -127,9 +127,9 @@ for fold in range(k_fold):
 
                 # scores = final_score
 
-                scores = scores*0.2
+                scores = scores*0.4
                 for  s in tails: 
-                    scores += s.mean(dim = -1)*0.2
+                    scores += s.mean(dim = -1)*0.15
 
                 probs = torch.sigmoid(scores)
                 y_probs.append(probs)
