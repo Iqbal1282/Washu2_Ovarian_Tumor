@@ -14,6 +14,7 @@ from dataset_washu2 import Classificaiton_Dataset
 from utils import plot_roc_curve, compute_weighted_accuracy
 from tqdm import tqdm 
 from torchmetrics.classification import BinaryAccuracy, BinaryAUROC
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 # Set deterministic behavior
 SEED = 42
 np.random.seed(SEED); torch.manual_seed(SEED); random.seed(SEED)
@@ -70,7 +71,10 @@ for fold in range(k_fold):
                                  sdf_model_path= r"checkpoints\deeplabv3_sdf_randomcrop\model_20250711_201243\epoch_84",
                                  radiomics= False).to(device)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=5e-5, weight_decay=1e-5)
+    #optimizer = torch.optim.Adam(model.parameters(), lr=5e-5, weight_decay=1e-5)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=5e-4, weight_decay=1e-2)
+    scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=2, eta_min=1e-6)
+
     best_val_auc = -1
     best_combined_score = -1 
     best_model_state = None 
@@ -84,7 +88,8 @@ for fold in range(k_fold):
         model.train()
         epoch_loss = 0.0
 
-        for batch in train_loader:
+        # batch in train_loader:
+        for batch_idx, batch in enumerate(train_loader):
             optimizer.zero_grad()
             if len(batch) == 2:
                 x, y = batch
@@ -94,10 +99,14 @@ for fold in range(k_fold):
                 loss = model.compute_loss(x.to(device), y.to(device), x2.to(device))
             loss.backward()
             optimizer.step()
+            optimizer.step()
+            scheduler.step(epoch + batch_idx / len(train_loader))
             epoch_loss += loss.item()
 
         avg_train_loss = epoch_loss / len(train_loader)
         wandb.log({f"train/loss_fold_{fold}": avg_train_loss, "epoch": epoch})
+        current_lr = scheduler.get_last_lr()[0]
+        wandb.log({f"train/lr_fold_{fold}": current_lr, "epoch": epoch})
 
         # --- Validation Evaluation ---
         model.eval()
@@ -112,7 +121,7 @@ for fold in range(k_fold):
                     x, x2, y = batch
                     x, x2, y = x.to(device), x2.to(device), y.to(device)
                     scores = model(x, x2)
-                    
+
                 probs = torch.sigmoid(scores)
                 y_probs.append(probs)
                 y_true.append(y)
