@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from sklearn.metrics import roc_curve, auc
 from torch.utils.data import DataLoader
-from fusion_models import BinaryClassificationTorch
+from fusion_models2 import BinaryClassificationTorch
 from dataset_washu2 import Classificaiton_Dataset
 from utils import plot_roc_curve, compute_weighted_accuracy
 from tqdm import tqdm 
