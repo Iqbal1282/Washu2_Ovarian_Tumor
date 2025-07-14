@@ -108,7 +108,7 @@ train_transform = A.Compose([
     A.ShiftScaleRotate(shift_limit=0.01, scale_limit=0.05, rotate_limit=10, border_mode=0, value=0, p=0.5),
 
     # Nonlinear distortions
-    A.ElasticTransform(alpha=10, sigma=120, alpha_affine=5, p=0.5),
+    A.ElasticTransform(alpha=30, sigma=300, alpha_affine=5, p=0.9),
     A.GridDistortion(distort_limit=0.3, p=0.5),
     
     # Intensity-related augmentations
