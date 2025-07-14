@@ -108,21 +108,21 @@ train_transform = A.Compose([
     A.ShiftScaleRotate(shift_limit=0.01, scale_limit=0.05, rotate_limit=10, border_mode=0, value=0, p=0.5),
 
     # Nonlinear distortions
-    A.ElasticTransform(alpha=10, sigma=120, alpha_affine=5, p=0.4),
-    A.GridDistortion(distort_limit=0.1, p=0.3),
+    A.ElasticTransform(alpha=10, sigma=120, alpha_affine=5, p=0.5),
+    A.GridDistortion(distort_limit=0.3, p=0.5),
     
     # Intensity-related augmentations
-    A.GaussNoise(mean_range=(-0.05, 0.05), std_range=(0.001, 0.05), p=0.9),  # Slightly reduced noise
+    A.GaussNoise(mean_range=(-0.05, 0.05), std_range=(0.001, 0.1), p=0.9),  # Slightly reduced noise
     A.RandomBrightnessContrast(brightness_limit=0.05, contrast_limit=0.005, p=0.5),
     
-    A.Downscale(scale_min=0.85, scale_max=0.99, p=0.3),
+    A.Downscale(scale_min=0.85, scale_max=0.99, p=0.5),
 
     # Occasionally sharpen or blur (mimics focus variability)
     A.OneOf([
-			A.MotionBlur(blur_limit=1),        # Very light motion blur
-			A.MedianBlur(blur_limit=1),        # Very slight smoothing
-			A.Sharpen(alpha=(0.01, 0.02)),     # Barely noticeable sharpening
-		], p=0.4),
+			A.MotionBlur(blur_limit=3),        # Very light motion blur
+			A.MedianBlur(blur_limit=3),        # Very slight smoothing
+			A.Sharpen(alpha=(0.01, 0.1)),     # Barely noticeable sharpening
+		], p=0.8),
     
     A.Normalize(mean=(0.5,), std=(0.5,)),  # Assuming grayscale
     ToTensorV2()
@@ -298,11 +298,11 @@ class Classificaiton_Dataset(Dataset):
 if __name__ == '__main__':
 	#Classificaiton_Dataset(phase = 'train', img_transform= transform_img)
 
-	for i in range(5):
-		train_dataset = Classificaiton_Dataset(phase = 'train', k_fold=5, fold= i)
-		train_dataset = Classificaiton_Dataset(phase = 'val', k_fold=5, fold= i)
+	# for i in range(5):
+	# 	train_dataset = Classificaiton_Dataset(phase = 'train', k_fold=5, fold= i)
+	# 	train_dataset = Classificaiton_Dataset(phase = 'val', k_fold=5, fold= i)
 
-	train_dataset = Classificaiton_Dataset(phase = 'train', k_fold=5, fold= 0)
+	train_dataset = Classificaiton_Dataset(phase = 'train', k_fold=5, fold= 2)
 	print("train dataset size: ", len(train_dataset))
 
 
