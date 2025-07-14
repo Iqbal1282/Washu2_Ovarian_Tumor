@@ -274,6 +274,82 @@ class ImageNet_Model(nn.Module):
 
     def forward(self, x):
         return self.model(x)
+    
+
+import timm
+import torch.nn as nn
+
+# class TransformerBackbone(nn.Module):
+#     def __init__(self, outsize):
+#         super().__init__()
+#         # Swin Transformer tiny pretrained on ImageNet-1K
+#         self.backbone = timm.create_model('swin_tiny_patch4_window7_224', pretrained=True)
+#         self.backbone.head = nn.Identity()  # remove classification head
+#         self.fc = nn.Sequential(
+#             nn.Linear(self.backbone.num_features, 256),
+#             nn.ReLU(),
+#             nn.Dropout(0.3),
+#             nn.Linear(256, outsize)
+#         )
+
+#     def forward(self, x):
+#         x = self.backbone(x)
+#         x = self.fc(x)
+#         return x
+
+
+# class TransformerBackbone(nn.Module):
+#     def __init__(self, outsize=5):
+#         super().__init__()
+#         self.backbone = timm.create_model(
+#             'swin_tiny_patch4_window7_224',
+#             pretrained=True,
+#             features_only=False
+#         )
+#         self.backbone.head = nn.Identity()  # remove classification head
+#         self.fc = nn.Sequential(
+#             nn.Linear(self.backbone.num_features, 256),
+#             nn.ReLU(),
+#             nn.Dropout(0.3),
+#             nn.Linear(256, outsize)
+#         )
+
+#     def forward(self, x):
+#         # Convert (B, 1, 256, 256) → (B, 3, 256, 256)
+#         if x.shape[1] == 1:
+#             x = x.repeat(1, 3, 1, 1)
+#         x = self.backbone(x)
+#         x = self.fc(x)
+#         return x
+    
+from timm.models.swin_transformer import SwinTransformer
+
+class TransformerBackbone(nn.Module):
+    def __init__(self, outsize=5):
+        super().__init__()
+        self.backbone = SwinTransformer(
+            img_size=256,
+            patch_size=4,
+            window_size=7,
+            embed_dim=96,
+            depths=(2, 2, 6, 2),
+            num_heads=(3, 6, 12, 24),
+            num_classes=0  # No classification head
+        )
+        self.fc = nn.Sequential(
+            nn.Linear(self.backbone.num_features, 256),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(256, outsize)
+        )
+
+    def forward(self, x):
+        if x.shape[1] == 1:
+            x = x.repeat(1, 3, 1, 1)  # grayscale → RGB
+        x = self.backbone.forward_features(x)
+        x = self.fc(x)
+        return x
+    
 
 class BinaryClassificationTorch(nn.Module):
     def __init__(self, input_dim=64, output_size = 5, num_classes=1, radiomics=False, radiomics_dim=463,
@@ -296,9 +372,9 @@ class BinaryClassificationTorch(nn.Module):
         self.sdf_model.load_state_dict(torch.load(sdf_model_path))
         for p in self.sdf_model.parameters(): p.requires_grad = False
 
-        self.full_encoder = ImageNet_Model(outsize=self.output_size)
-        self.boundary_encoder = ImageNet_Model(outsize=self.output_size)
-        self.center_encoder = ImageNet_Model(outsize=self.output_size)
+        self.full_encoder = TransformerBackbone(outsize= 1) # ImageNet_Model(outsize=self.output_size)
+        self.boundary_encoder = TransformerBackbone(outsize= 1) #ImageNet_Model(outsize=self.output_size)
+        self.center_encoder = TransformerBackbone(outsize= 1) #ImageNet_Model(outsize=self.output_size)
 
         if radiomics:
             self.linear_radiomics = FCNetwork(radiomics_dim, [128, 64, 64], 32)
@@ -308,7 +384,7 @@ class BinaryClassificationTorch(nn.Module):
         else:
             self.linear = FCNetwork(self.input_size, self.hidden_sizes, self.output_size)
 
-        self.final_layer = FCNetwork(4 * self.output_size, [24, 12, 5], num_classes)
+        self.final_layer = FCNetwork(5+ 3*64, [24, 12, 5], num_classes)
 
         self.loss_fn = FocalLoss()
         self.loss_fn2 = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([3.0]))
@@ -319,7 +395,7 @@ class BinaryClassificationTorch(nn.Module):
 
     def forward(self, x, x2_radiomics=None):
         x1 = self.encoder(x)
-        x2 = self.full_encoder(x)
+        x2 = self.full_encoder(x).reshape(x1.shape[0], -1)
 
         x_sdf = self.sdf_model(x)
         x_sdf = self.normalize_sdf(x_sdf)
@@ -331,8 +407,8 @@ class BinaryClassificationTorch(nn.Module):
         boundary_mask = (x_sdf < upper_thresh) & (x_sdf > lower_thresh)
         center_mask = (x_sdf < center_thresh)
 
-        x3 = self.boundary_encoder(x * boundary_mask)
-        x4 = self.center_encoder(x * center_mask)
+        x3 = self.boundary_encoder(x * boundary_mask).reshape(x1.shape[0], -1)
+        x4 = self.center_encoder(x * center_mask).reshape(x1.shape[0], -1)
 
         if x2_radiomics is not None:
             x2_radiomics = self.linear_radiomics(x2_radiomics)
@@ -352,13 +428,14 @@ class BinaryClassificationTorch(nn.Module):
             loss = self.loss_fn(score, y.float()) + sum(self.loss_fn(t, y.float()) for t in tails)
         else:
             score, tails = self.forward(x)
+            y3 = y.unsqueeze(-1).repeat((1, 64)).squeeze()
             y2 = y.unsqueeze(-1).repeat((1, self.output_size)).squeeze()
             loss = (self.loss_fn(score, y.float()) * 0.2 +
                     self.loss_fn(tails[0], y2.float()) * 0.1 +
-                    sum(self.loss_fn(t, y2.float()) for t in tails[1:]) +
+                    sum(self.loss_fn(t, y3.float()) for t in tails[1:]) +
                     self.loss_fn2(score, y.float()) * 0.2 +
                     self.loss_fn2(tails[0], y2.float()) * 0.1 +
-                    sum(self.loss_fn2(t, y2.float()) for t in tails[1:]))
+                    sum(self.loss_fn2(t, y3.float()) for t in tails[1:]))
         return loss
 
     def predict_on_loader(self, dataloader):
