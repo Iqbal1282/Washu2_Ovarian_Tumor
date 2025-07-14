@@ -112,7 +112,7 @@ train_transform = A.Compose([
     A.GridDistortion(distort_limit=0.01, p=0.5),
     
     # Intensity-related augmentations
-    A.GaussNoise(mean_range=(-0.1, 0.1), std_range=(0.001, 0.2), p=0.9),  # Slightly reduced noise
+    A.GaussNoise(mean_range=(-0.1, 0.1), std_range=(0.001, 0.3), p=0.9),  # Slightly reduced noise
     A.RandomBrightnessContrast(brightness_limit=0.05, contrast_limit=0.005, p=0.5),
     
     A.Downscale(scale_min=0.85, scale_max=0.99, p=0.5),
