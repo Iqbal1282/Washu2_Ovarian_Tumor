@@ -129,7 +129,7 @@ for fold in range(k_fold):
         train_y_true = torch.cat(train_y_true)
         train_y_probs = torch.cat(train_y_probs)
 
-        fpr_train, tpr_train, train_auc = calculate_auc(
+        train_auc = calculate_auc(
             train_y_true.cpu().numpy(), train_y_probs.cpu().numpy())
 
         wandb.log({f"train/roc_auc_fold_{fold}": train_auc, "epoch": epoch})
@@ -186,8 +186,8 @@ for fold in range(k_fold):
             best_val_auc = roc_auc
             best_model_state = model.state_dict()
 
-        if train_auc > best_val_auc:
-            best_val_auc = train_auc
+        if (train_auc*0.5 + roc_auc *0.5)  > best_val_auc:
+            best_val_auc = train_auc *0.5 + roc_auc *0.5
             best_model_state = model.state_dict()
 
         # if combined_score > best_combined_score:
