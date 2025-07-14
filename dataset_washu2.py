@@ -108,11 +108,11 @@ train_transform = A.Compose([
     A.ShiftScaleRotate(shift_limit=0.01, scale_limit=0.05, rotate_limit=10, border_mode=0, value=0, p=0.5),
 
     # Nonlinear distortions
-    A.ElasticTransform(alpha=30, sigma=300, alpha_affine=5, p=0.9),
-    A.GridDistortion(distort_limit=0.5, p=0.8),
+    A.ElasticTransform(alpha=10, sigma=120, alpha_affine=5, p=0.5),
+    A.GridDistortion(distort_limit=0.1, p=0.5),
     
     # Intensity-related augmentations
-    A.GaussNoise(mean_range=(-0.05, 0.05), std_range=(0.001, 0.1), p=0.9),  # Slightly reduced noise
+    A.GaussNoise(mean_range=(-0.1, 0.1), std_range=(0.001, 0.2), p=0.9),  # Slightly reduced noise
     A.RandomBrightnessContrast(brightness_limit=0.05, contrast_limit=0.005, p=0.5),
     
     A.Downscale(scale_min=0.85, scale_max=0.99, p=0.5),
