@@ -109,7 +109,7 @@ train_transform = A.Compose([
 
     # Nonlinear distortions
     A.ElasticTransform(alpha=30, sigma=300, alpha_affine=5, p=0.9),
-    A.GridDistortion(distort_limit=0.3, p=0.5),
+    A.GridDistortion(distort_limit=0.5, p=0.8),
     
     # Intensity-related augmentations
     A.GaussNoise(mean_range=(-0.05, 0.05), std_range=(0.001, 0.1), p=0.9),  # Slightly reduced noise
