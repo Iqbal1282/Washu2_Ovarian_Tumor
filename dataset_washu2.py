@@ -68,27 +68,61 @@ from collections import defaultdict
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-train_transform = A.Compose([
-    A.PadIfNeeded(min_height=256, min_width=256, border_mode=0, value=0, mask_value=0),
-    #A.RandomCrop(256, 256),
-	# A.RandomResizedCrop(scale=(0.95, 1.0),
-	# 					ratio=(0.95, 1.05),
-	# 					size=(256, 256)), 
-	A.Resize(256, 256),
+# train_transform = A.Compose([
+#     A.PadIfNeeded(min_height=256, min_width=256, border_mode=0, value=0, mask_value=0),
+#     #A.RandomCrop(256, 256),
+# 	# A.RandomResizedCrop(scale=(0.95, 1.0),
+# 	# 					ratio=(0.95, 1.05),
+# 	# 					size=(256, 256)), 
+# 	A.Resize(256, 256),
 	
 
-    A.HorizontalFlip(p=0.5),
-    A.VerticalFlip(p=0.5),
-    A.RandomRotate90(p=0.5),
+#     A.HorizontalFlip(p=0.5),
+#     A.VerticalFlip(p=0.5),
+#     A.RandomRotate90(p=0.5),
 
-	A.ShiftScaleRotate(shift_limit=0.005, scale_limit=0.005, rotate_limit=(-10,10), border_mode=0, value=0, p=0.5), 
-    A.ElasticTransform(alpha = 5, sigma = 250, p=0.5),
-    A.GridDistortion(distort_limit=(-0.2,0.2), p=0.5),
-	A.GaussNoise(std_range=(0.02, 0.05), p=0.9),
-    A.RandomBrightnessContrast(brightness_limit=(0, 0.01), contrast_limit=(0, 0.01), p=0.5),
-    # #A.CLAHE(clip_limit=.5, tile_grid_size=(8, 8), p=0.5),
-    A.Downscale(scale_range=(0.85,0.99), p=0.5),
-    A.Normalize(mean=(0.5,), std=(0.5,)),  # Adjust if using RGB
+# 	A.ShiftScaleRotate(shift_limit=0.005, scale_limit=0.005, rotate_limit=(-10,10), border_mode=0, value=0, p=0.5), 
+#     A.ElasticTransform(alpha = 5, sigma = 250, p=0.5),
+#     A.GridDistortion(distort_limit=(-0.2,0.2), p=0.5),
+# 	A.GaussNoise(std_range=(0.02, 0.05), p=0.9),
+#     A.RandomBrightnessContrast(brightness_limit=(0, 0.01), contrast_limit=(0, 0.01), p=0.5),
+#     # #A.CLAHE(clip_limit=.5, tile_grid_size=(8, 8), p=0.5),
+#     A.Downscale(scale_range=(0.85,0.99), p=0.5),
+#     A.Normalize(mean=(0.5,), std=(0.5,)),  # Adjust if using RGB
+#     ToTensorV2()
+# ])
+
+train_transform = A.Compose([
+    # Ensure consistent input size
+    A.PadIfNeeded(min_height=256, min_width=256, border_mode=0, value=0, mask_value=0),
+    A.RandomResizedCrop(height=256, width=256, scale=(0.9, 1.0), ratio=(0.95, 1.05), p=0.8),
+    
+    # Geometry-based augmentations
+    A.HorizontalFlip(p=0.5),
+    A.VerticalFlip(p=0.2),  # More conservative vertical flipping (less common in ultrasound)
+    A.RandomRotate90(p=0.3),
+    A.Rotate(limit=10, border_mode=0, value=0, p=0.3),  # Optional: smoother than RandomRotate90
+    
+    A.ShiftScaleRotate(shift_limit=0.01, scale_limit=0.05, rotate_limit=10, border_mode=0, value=0, p=0.5),
+
+    # Nonlinear distortions
+    A.ElasticTransform(alpha=10, sigma=120, alpha_affine=5, p=0.4),
+    A.GridDistortion(distort_limit=0.1, p=0.3),
+    
+    # Intensity-related augmentations
+    A.GaussNoise(var_limit=(0.001, 0.01), p=0.5),  # Slightly reduced noise
+    A.RandomBrightnessContrast(brightness_limit=0.05, contrast_limit=0.05, p=0.5),
+    
+    A.Downscale(scale_min=0.85, scale_max=0.99, p=0.3),
+
+    # Occasionally sharpen or blur (mimics focus variability)
+    A.OneOf([
+        A.MotionBlur(blur_limit=3),
+        A.MedianBlur(blur_limit=3),
+        A.Sharpen(alpha=(0.1, 0.3)),
+    ], p=0.3),
+    
+    A.Normalize(mean=(0.5,), std=(0.5,)),  # Assuming grayscale
     ToTensorV2()
 ])
 
