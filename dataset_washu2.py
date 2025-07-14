@@ -96,6 +96,8 @@ train_transform = A.Compose([
     # Ensure consistent input size
     A.PadIfNeeded(min_height=256, min_width=256, border_mode=0, value=0, mask_value=0),
     #A.RandomResizedCrop(height=256, width=256, scale=(0.9, 1.0), ratio=(0.95, 1.05), p=0.8),
+	A.RandomResizedCrop(size=(256, 256), scale=(0.9, 1.0), ratio=(0.95, 1.05), p=0.8),
+
 	A.Resize(256, 256),
     
     # Geometry-based augmentations
@@ -112,7 +114,7 @@ train_transform = A.Compose([
     
     # Intensity-related augmentations
     A.GaussNoise(var_limit=(0.001, 0.01), p=0.5),  # Slightly reduced noise
-    A.RandomBrightnessContrast(brightness_limit=0.05, contrast_limit=0.05, p=0.5),
+    A.RandomBrightnessContrast(brightness_limit=0.05, contrast_limit=0.005, p=0.5),
     
     A.Downscale(scale_min=0.85, scale_max=0.99, p=0.3),
 
@@ -120,8 +122,8 @@ train_transform = A.Compose([
     A.OneOf([
 			A.MotionBlur(blur_limit=1),        # Very light motion blur
 			A.MedianBlur(blur_limit=1),        # Very slight smoothing
-			A.Sharpen(alpha=(0.01, 0.02)),     # Barely noticeable sharpening
-		], p=0.4),
+			A.Sharpen(alpha=(0.01, 0.02), method="gaussian"),     # Barely noticeable sharpening
+		], p=0.9),
     
     A.Normalize(mean=(0.5,), std=(0.5,)),  # Assuming grayscale
     ToTensorV2()
