@@ -28,6 +28,13 @@ matplotlib.use('Agg')  # Use non-interactive backend
 #     return fpr, tpr, roc_auc
 
 
+def calculate_auc(y_true, y_probs):
+    fpr, tpr, thresholds = roc_curve(y_true, y_probs)
+    roc_auc = auc(fpr, tpr)
+
+    return roc_auc
+
+
 def plot_roc_curve(y_true, y_probs, fold_idx=None, wandb_logger=None):
     # Compute ROC curve and AUC
     fpr, tpr, thresholds = roc_curve(y_true, y_probs)

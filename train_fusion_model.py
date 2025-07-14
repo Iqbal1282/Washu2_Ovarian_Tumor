@@ -11,7 +11,7 @@ from sklearn.metrics import roc_curve, auc
 from torch.utils.data import DataLoader
 from fusion_models import BinaryClassificationTorch
 from dataset_washu2 import Classificaiton_Dataset
-from utils import plot_roc_curve, compute_weighted_accuracy
+from utils import plot_roc_curve, compute_weighted_accuracy, calculate_auc
 from tqdm import tqdm 
 from torchmetrics.classification import BinaryAccuracy, BinaryAUROC
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
@@ -129,8 +129,8 @@ for fold in range(k_fold):
         train_y_true = torch.cat(train_y_true)
         train_y_probs = torch.cat(train_y_probs)
 
-        fpr_train, tpr_train, train_auc = plot_roc_curve(
-            train_y_true.cpu().numpy(), train_y_probs.cpu().numpy(), fold_idx=fold + 1, label='Train')
+        fpr_train, tpr_train, train_auc = calculate_auc(
+            train_y_true.cpu().numpy(), train_y_probs.cpu().numpy())
 
         wandb.log({f"train/roc_auc_fold_{fold}": train_auc, "epoch": epoch})
 
