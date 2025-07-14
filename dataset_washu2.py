@@ -160,6 +160,15 @@ class Classificaiton_Dataset(Dataset):
 		if self.phase == "test":
 			selected_cases = test_case_set
 			self.transform = val_transform
+
+			# === Logging patient-side selections for current phase ===
+			selected_case_list = sorted(list(selected_cases))
+			print(f"\n📋 [{self.phase.upper()} SET] — {len(selected_case_list)} PatientSides:")
+			for case in selected_case_list:
+				pid = case.split("_")[0].lstrip("p")
+				side = case.split("_")[1]
+				label = label_map[case]
+				print(f" - Patient ID: {pid}, Side: {side}, Label: {label}")
 		else:
 			# Exclude test cases from fold-based splitting
 			strat_case_ids = [cid for cid in case_ids if cid not in test_case_set]
@@ -168,9 +177,7 @@ class Classificaiton_Dataset(Dataset):
 			skf = StratifiedKFold(n_splits=k_fold, shuffle=True, random_state=42)
 			splits = list(skf.split(strat_case_ids, strat_case_labels))
 			train_idx, val_idx = splits[fold]
-			print("train pateints: ", train_idx)
-			print(val_idx)
-			print("val patients: ", val_idx)
+
 
 			if self.phase == "train":
 				selected_cases = set(strat_case_ids[i] for i in train_idx)
@@ -178,6 +185,16 @@ class Classificaiton_Dataset(Dataset):
 			else:
 				selected_cases = set(strat_case_ids[i] for i in val_idx)
 				self.transform = val_transform
+
+
+			# === Logging patient-side selections for current phase ===
+			selected_case_list = sorted(list(selected_cases))
+			print(f"\n📋 [{self.phase.upper()} SET] — {len(selected_case_list)} PatientSides:")
+			for case in selected_case_list:
+				pid = case.split("_")[0].lstrip("p")
+				side = case.split("_")[1]
+				label = label_map[case]
+				print(f" - Patient ID: {pid}, Side: {side}, Label: {label}")
 
 		# === Load filesystem and match against selected cases ===
 		all_samples = []
@@ -244,6 +261,11 @@ class Classificaiton_Dataset(Dataset):
 	
 if __name__ == '__main__':
 	#Classificaiton_Dataset(phase = 'train', img_transform= transform_img)
+
+	for i in range(5):
+		train_dataset = Classificaiton_Dataset(phase = 'train', k_fold=5, fold= i)
+		train_dataset = Classificaiton_Dataset(phase = 'val', k_fold=5, fold= i)
+
 	train_dataset = Classificaiton_Dataset(phase = 'test', k_fold=5, fold= 0)
 	print("train dataset size: ", len(train_dataset))
 

@@ -343,13 +343,30 @@ class TransformerBackbone(nn.Module):
             nn.Linear(256, outsize)
         )
 
+        # def forward(self, x):
+        #     if x.shape[1] == 1:
+        #         x = x.repeat(1, 3, 1, 1)  # grayscale → RGB
+        #     x = self.backbone.forward_features(x)
+        #     x = self.fc(x)
+        #     return x
     def forward(self, x):
         if x.shape[1] == 1:
             x = x.repeat(1, 3, 1, 1)  # grayscale → RGB
-        x = self.backbone.forward_features(x)
-        x = self.fc(x)
+
+        x = self.backbone.forward_features(x)  # shape: (B, 8, 8, C)
+
+        # Permute to (B, C, H, W) for pooling
+        x = x.permute(0, 3, 1, 2)  # shape: (B, C, 8, 8)
+
+        # Downsample to (2, 2)
+        x = F.adaptive_avg_pool2d(x, (2, 2))  # shape: (B, C, 2, 2)
+
+        # Permute back to (B, H, W, C)
+        x = x.permute(0, 2, 3, 1)  # shape: (B, 2, 2, C)
+
+        # Apply FC to final dim
+        x = self.fc(x)  # Applies FC on each (2,2,C) → (2,2,outsize)
         return x
-    
 
 class BinaryClassificationTorch(nn.Module):
     def __init__(self, input_dim=64, output_size = 5, num_classes=1, radiomics=False, radiomics_dim=463,
@@ -384,7 +401,7 @@ class BinaryClassificationTorch(nn.Module):
         else:
             self.linear = FCNetwork(self.input_size, self.hidden_sizes, self.output_size)
 
-        self.final_layer = FCNetwork(5+ 3*64, [24, 12, 5], num_classes)
+        self.final_layer = FCNetwork(5+ 3*4, [24, 12, 5], num_classes)
 
         self.loss_fn = FocalLoss()
         self.loss_fn2 = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([3.0]))
@@ -428,7 +445,7 @@ class BinaryClassificationTorch(nn.Module):
             loss = self.loss_fn(score, y.float()) + sum(self.loss_fn(t, y.float()) for t in tails)
         else:
             score, tails = self.forward(x)
-            y3 = y.unsqueeze(-1).repeat((1, 64)).squeeze()
+            y3 = y.unsqueeze(-1).repeat((1, 4)).squeeze()
             y2 = y.unsqueeze(-1).repeat((1, self.output_size)).squeeze()
             loss = (self.loss_fn(score, y.float()) * 0.2 +
                     self.loss_fn(tails[0], y2.float()) * 0.1 +
