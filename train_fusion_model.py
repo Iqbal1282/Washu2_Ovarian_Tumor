@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from sklearn.metrics import roc_curve, auc
 from torch.utils.data import DataLoader
-from fusion_models2 import BinaryClassificationTorch
+from fusion_models import BinaryClassificationTorch
 from dataset_washu2 import Classificaiton_Dataset
 from utils import plot_roc_curve, compute_weighted_accuracy
 from tqdm import tqdm 
@@ -108,6 +108,33 @@ for fold in range(k_fold):
         current_lr = scheduler.get_last_lr()[0]
         wandb.log({f"train/lr_fold_{fold}": current_lr, "epoch": epoch})
 
+        # --- Train Evaluation (AUC) ---
+        model.eval()
+        train_y_true, train_y_probs = [], []
+        with torch.no_grad():
+            for batch in train_loader:
+                if len(batch) == 2:
+                    x, y = batch
+                    x, y = x.to(device), y.to(device)
+                    scores = model(x)
+                else:
+                    x, x2, y = batch
+                    x, x2, y = x.to(device), x2.to(device), y.to(device)
+                    scores = model(x, x2)
+
+                probs = torch.sigmoid(scores)
+                train_y_probs.append(probs)
+                train_y_true.append(y)
+
+        train_y_true = torch.cat(train_y_true)
+        train_y_probs = torch.cat(train_y_probs)
+
+        fpr_train, tpr_train, train_auc = plot_roc_curve(
+            train_y_true.cpu().numpy(), train_y_probs.cpu().numpy(), fold_idx=fold + 1, label='Train')
+
+        wandb.log({f"train/roc_auc_fold_{fold}": train_auc, "epoch": epoch})
+
+
         # --- Validation Evaluation ---
         model.eval()
         y_true, y_probs = [], []
@@ -157,6 +184,10 @@ for fold in range(k_fold):
 
         if roc_auc > best_val_auc:
             best_val_auc = roc_auc
+            best_model_state = model.state_dict()
+
+        if train_auc > best_val_auc:
+            best_val_auc = train_auc
             best_model_state = model.state_dict()
 
         # if combined_score > best_combined_score:
