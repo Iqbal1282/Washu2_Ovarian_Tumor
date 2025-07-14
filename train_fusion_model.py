@@ -37,7 +37,7 @@ except Exception as e:
     print(f"Git commit fetch failed: {e}")
 
 # WandB Settings
-project_title = "Fusion Ovarian Cancer Classification"
+project_title = "Fusion-Ovarian-Cancer-Classification-Washu2"
 experiment_group = f"Exp1:{commit_string}_{commit_log}"
 train_config = {
     "k_fold": k_fold,

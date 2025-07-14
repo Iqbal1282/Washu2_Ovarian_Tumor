@@ -129,10 +129,51 @@ train_transform = A.Compose([
 ])
 
 
+
+
 val_transform = A.Compose([
     A.PadIfNeeded(min_height=256, min_width=256, border_mode=0, value=0, mask_value=0),
     A.Resize(256, 256),
     A.Normalize(mean=(0.5,), std=(0.5,)),
+    ToTensorV2()
+])
+
+
+
+train_transform = A.Compose([
+    # Resize with ratio range
+    A.RandomResizedCrop(size=(384, 384), scale=(0.9, 1.0), ratio=(0.9, 1.1), p=1.0),
+    A.ShiftScaleRotate(shift_limit=(-0.005,0.005), scale_limit=(-0.2, 0.005), rotate_limit=(-30,30), border_mode=0, value=0, p=0.6),
+
+    # Random cropping to fixed size
+    #A.RandomCrop(height=384, width=384, p=1.0),
+
+    # Horizontal flip
+    A.HorizontalFlip(p=0.5),
+
+    A.ElasticTransform(alpha = 10, sigma = 250, p=0.5),
+    A.GridDistortion(distort_limit=(-0.2,0.2), p=0.5),
+
+    # Photometric distortions
+    A.OneOf([
+        A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
+        A.CLAHE(clip_limit=2.0, p=0.3),
+        #A.HueSaturationValue(p=0.3),  # Doesn't apply to grayscale but included for RGB fallback
+    ], p=0.6),
+
+    # Normalize using paper settings (converted to single-channel equivalent)
+    A.Normalize(mean=(0.5,), std=(0.5,), max_pixel_value=255.0),  # Adapted for grayscale
+
+    # Ensure padding to crop size
+    A.PadIfNeeded(min_height=384, min_width=384, border_mode=0, value=0, p=1.0),
+
+    ToTensorV2()
+])
+
+
+val_transform = A.Compose([
+    A.Resize(384, 384),
+    A.Normalize(mean=(0.5,), std=(0.5,), max_pixel_value=255.0),
     ToTensorV2()
 ])
 
