@@ -95,7 +95,8 @@ from albumentations.pytorch import ToTensorV2
 train_transform = A.Compose([
     # Ensure consistent input size
     A.PadIfNeeded(min_height=256, min_width=256, border_mode=0, value=0, mask_value=0),
-    A.RandomResizedCrop(height=256, width=256, scale=(0.9, 1.0), ratio=(0.95, 1.05), p=0.8),
+    #A.RandomResizedCrop(height=256, width=256, scale=(0.9, 1.0), ratio=(0.95, 1.05), p=0.8),
+	A.Resize(256, 256),
     
     # Geometry-based augmentations
     A.HorizontalFlip(p=0.5),
@@ -117,10 +118,10 @@ train_transform = A.Compose([
 
     # Occasionally sharpen or blur (mimics focus variability)
     A.OneOf([
-        A.MotionBlur(blur_limit=3),
-        A.MedianBlur(blur_limit=3),
-        A.Sharpen(alpha=(0.1, 0.3)),
-    ], p=0.3),
+			A.MotionBlur(blur_limit=1),        # Very light motion blur
+			A.MedianBlur(blur_limit=1),        # Very slight smoothing
+			A.Sharpen(alpha=(0.01, 0.02)),     # Barely noticeable sharpening
+		], p=0.4),
     
     A.Normalize(mean=(0.5,), std=(0.5,)),  # Assuming grayscale
     ToTensorV2()
@@ -300,7 +301,7 @@ if __name__ == '__main__':
 		train_dataset = Classificaiton_Dataset(phase = 'train', k_fold=5, fold= i)
 		train_dataset = Classificaiton_Dataset(phase = 'val', k_fold=5, fold= i)
 
-	train_dataset = Classificaiton_Dataset(phase = 'test', k_fold=5, fold= 0)
+	train_dataset = Classificaiton_Dataset(phase = 'train', k_fold=5, fold= 0)
 	print("train dataset size: ", len(train_dataset))
 
 
