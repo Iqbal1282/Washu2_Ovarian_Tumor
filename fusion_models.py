@@ -186,7 +186,7 @@ class BinaryClassificationTorch(nn.Module):
         return sdf_image * 2 - 1
 
     def forward(self, x, x2_radiomics=None):
-        x_sdf = self.sdf_model(x)
+        x_sdf = self.sdf_model(x.mean(dim = 1, keepdim = True))
         x_sdf = self.normalize_sdf(x_sdf)
 
         lower_thresh = torch.empty(1).uniform_(-0.45, -0.15).item()
