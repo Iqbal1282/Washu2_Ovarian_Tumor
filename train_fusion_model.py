@@ -235,6 +235,22 @@ final_img_path = 'plots/roc_all_folds.png'
 plt.savefig(final_img_path)
 plt.close()
 
+import pickle
+
+# Save ROC-related data
+roc_data = {
+    'all_fprs': all_fprs,
+    'all_tprs': all_tprs,
+    'all_aucs': all_aucs,
+    'mean_fpr': mean_fpr,
+    'mean_tpr': mean_tpr,
+    'mean_auc': mean_auc
+}
+
+# Save as pickle
+with open('plots/roc_data.pkl', 'wb') as f:
+    pickle.dump(roc_data, f)
+
 # Final ROC to WandB
 final_run = wandb.init(
     project=project_title,
