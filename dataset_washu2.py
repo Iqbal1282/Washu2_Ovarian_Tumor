@@ -142,17 +142,22 @@ val_transform = A.Compose([
 
 train_transform = A.Compose([
     # Resize with ratio range
-    A.RandomResizedCrop(size=(384, 384), scale=(0.9, 1.0), ratio=(0.9, 1.1), p=1.0),
+	A.Resize(height=448, width=448, always_apply=True),
+	A.ElasticTransform(alpha = 10, sigma = 250, p=0.5),
+    A.GridDistortion(distort_limit=(-0.2,0.2), p=0.5),
+
     A.ShiftScaleRotate(shift_limit=(-0.005,0.005), scale_limit=(-0.2, 0.005), rotate_limit=(-30,30), border_mode=0, value=0, p=0.6),
 
     # Random cropping to fixed size
     #A.RandomCrop(height=384, width=384, p=1.0),
+	#A.RandomResizedCrop(size=(384, 384), scale=(0.9, 1.0), ratio=(0.9, 1.1), p=1.0),
+	A.RandomResizedCrop(size=(384, 384), scale=(0.8, 1.0), ratio=(0.75, 1.33), p=1.0),
 
     # Horizontal flip
     A.HorizontalFlip(p=0.5),
 
-    A.ElasticTransform(alpha = 10, sigma = 250, p=0.5),
-    A.GridDistortion(distort_limit=(-0.2,0.2), p=0.5),
+    # A.ElasticTransform(alpha = 10, sigma = 250, p=0.5),
+    # A.GridDistortion(distort_limit=(-0.2,0.2), p=0.5),
 
     # Photometric distortions
     A.OneOf([
@@ -172,7 +177,7 @@ train_transform = A.Compose([
 
 
 val_transform = A.Compose([
-    A.Resize(384, 384),
+    A.Resize(448, 448, p=1.0), 
     A.Normalize(mean=(0.5,), std=(0.5,), max_pixel_value=255.0),
     ToTensorV2()
 ])
