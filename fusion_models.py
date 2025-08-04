@@ -179,7 +179,7 @@ class BinaryClassificationTorch(nn.Module):
         self.fusion_model = MultiModalCancerClassifierWithAttention()
 
         self.loss_fn = FocalLoss()
-        self.loss_fn2 = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([3.0]))
+        self.loss_fn2 = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([5.0]))
 
     def normalize_sdf(self, sdf_image):
         sdf_image = (sdf_image - sdf_image.min()) / (sdf_image.max() - sdf_image.min() + 1e-8)
