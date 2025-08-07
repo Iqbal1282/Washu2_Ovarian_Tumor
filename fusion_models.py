@@ -255,7 +255,7 @@ class PatchEmbed(nn.Module):
         return x
     
 class ThreeModalTransformerClassifier(nn.Module):
-    def __init__(self, img_size=448, patch_size=32, embed_dim=256, num_heads=4, num_layers=6, num_classes=8, common_root_patcher = False):
+    def __init__(self, img_size=448, patch_size=32, embed_dim=256, num_heads=4, num_layers=6, num_classes=8, dropout = 0.1, common_root_patcher = False):
         super().__init__()
 
         self.sdf_model = SDFModel()
@@ -280,6 +280,7 @@ class ThreeModalTransformerClassifier(nn.Module):
         
         # Positional embeddings
         self.pos_embed = nn.Parameter(torch.randn(1, 1 + 3 * self.patch_dim, embed_dim))
+        self.dropout = nn.Dropout(dropout)
         
         # Modality token embeddings (added per patch token depending on source)
         self.modality_tokens = nn.Parameter(torch.randn(3, 1, embed_dim))  # 0=SO2, 1=THb, 2=US
@@ -294,7 +295,7 @@ class ThreeModalTransformerClassifier(nn.Module):
             nn.Linear(embed_dim, num_classes)
         )
 
-        self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([3.0]))
+        self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([10.0]))
 
     def forward(self, x):  #so2, thb): #, us):
 
@@ -336,6 +337,7 @@ class ThreeModalTransformerClassifier(nn.Module):
 
         # 4. Add positional embedding
         x += self.pos_embed[:, :x.size(1), :]
+        x = self.dropout(x) if self.training else x  # Apply dropout only during training
 
         # 5. Transformer encoding
         x = self.transformer(x)
