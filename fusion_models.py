@@ -241,8 +241,21 @@ class BinaryClassificationTorch(nn.Module):
 
         return torch.cat(all_targets).numpy(), torch.cat(all_probs).numpy()
     
+class PatchEmbed(nn.Module):
+    def __init__(self, img_size=256, patch_size=16, in_chans=1, embed_dim=768):
+        super().__init__()
+        self.grid_size = img_size // patch_size
+        self.num_patches = self.grid_size ** 2
+        self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)
+
+    def forward(self, x):
+        # x: [B, 1, H, W] → [B, embed_dim, H//P, W//P] → [B, num_patches, embed_dim]
+        x = self.proj(x)  # [B, E, H/P, W/P]
+        x = x.flatten(2).transpose(1, 2)  # [B, N, E]
+        return x
+    
 class ThreeModalTransformerClassifier(nn.Module):
-    def __init__(self, img_size=448, patch_size=32, embed_dim=256, num_heads=4, num_layers=6, num_classes=8):
+    def __init__(self, img_size=448, patch_size=32, embed_dim=256, num_heads=4, num_layers=6, num_classes=8, common_root_patcher = False):
         super().__init__()
 
         self.sdf_model = SDFModel()
@@ -254,10 +267,13 @@ class ThreeModalTransformerClassifier(nn.Module):
         self.patch_dim = (img_size // patch_size) ** 2
         self.patch_embed_dim = embed_dim
 
-        # Modality-specific CNNs (or lightweight ViTs if pretrained available)
-        self.so2_cnn = nn.Conv2d(1, embed_dim, kernel_size=patch_size, stride=patch_size)
-        self.thb_cnn = nn.Conv2d(1, embed_dim, kernel_size=patch_size, stride=patch_size)
-        self.us_cnn  = nn.Conv2d(1, embed_dim, kernel_size=patch_size, stride=patch_size)
+        if common_root_patcher:
+            self.common_patcher = PatchEmbed(img_size=img_size, patch_size=patch_size, in_chans=1, embed_dim=embed_dim)
+        else: 
+            # Modality-specific CNNs (or lightweight ViTs if pretrained available)
+            self.so2_cnn = nn.Conv2d(1, embed_dim, kernel_size=patch_size, stride=patch_size)
+            self.thb_cnn = nn.Conv2d(1, embed_dim, kernel_size=patch_size, stride=patch_size)
+            self.us_cnn  = nn.Conv2d(1, embed_dim, kernel_size=patch_size, stride=patch_size)
         
         # CLS token (shared)
         self.cls_token = nn.Parameter(torch.randn(1, 1, embed_dim))
@@ -299,10 +315,15 @@ class ThreeModalTransformerClassifier(nn.Module):
         #so2, thb,  = x[0], x[1]
         B = so2.size(0)
 
-        # 1. Patch embeddings via modality-specific CNNs
-        so2_patches = rearrange(self.so2_cnn(so2), 'b c h w -> b (h w) c')
-        thb_patches = rearrange(self.thb_cnn(thb), 'b c h w -> b (h w) c')
-        us_patches  = rearrange(self.us_cnn(x),  'b c h w -> b (h w) c')
+        if self.commond_root_patcher:
+            so2_patches = self.common_patcher(so2)
+            thb_patches = self.common_patcher(thb)
+            us_patches  = self.common_patcher(x)
+        else:
+            # 1. Patch embeddings via modality-specific CNNs
+            so2_patches = rearrange(self.so2_cnn(so2), 'b c h w -> b (h w) c')
+            thb_patches = rearrange(self.thb_cnn(thb), 'b c h w -> b (h w) c')
+            us_patches  = rearrange(self.us_cnn(x),  'b c h w -> b (h w) c')
 
         # 2. Add modality-specific tokens
         so2_patches += self.modality_tokens[0]
