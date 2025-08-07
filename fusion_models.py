@@ -27,6 +27,8 @@ import torchvision
 
 import torch.nn as nn
 import segmentation_models_pytorch as smp
+from einops import rearrange, repeat
+import timm
 
 
 class AsymmetricLoss(nn.Module):
@@ -238,6 +240,126 @@ class BinaryClassificationTorch(nn.Module):
                 all_targets.append(y.cpu())
 
         return torch.cat(all_targets).numpy(), torch.cat(all_probs).numpy()
+    
+class ThreeModalTransformerClassifier(nn.Module):
+    def __init__(self, img_size=448, patch_size=32, embed_dim=256, num_heads=4, num_layers=6, num_classes=8):
+        super().__init__()
+
+        self.sdf_model = SDFModel()
+        sdf_model_path = r"checkpoints\deeplabv3_sdf_randomcrop\model_20250711_201243\epoch_84"
+        self.sdf_model.load_state_dict(torch.load(sdf_model_path))
+        for p in self.sdf_model.parameters(): p.requires_grad = False
+
+        
+        self.patch_dim = (img_size // patch_size) ** 2
+        self.patch_embed_dim = embed_dim
+
+        # Modality-specific CNNs (or lightweight ViTs if pretrained available)
+        self.so2_cnn = nn.Conv2d(1, embed_dim, kernel_size=patch_size, stride=patch_size)
+        self.thb_cnn = nn.Conv2d(1, embed_dim, kernel_size=patch_size, stride=patch_size)
+        self.us_cnn  = nn.Conv2d(1, embed_dim, kernel_size=patch_size, stride=patch_size)
+        
+        # CLS token (shared)
+        self.cls_token = nn.Parameter(torch.randn(1, 1, embed_dim))
+        
+        # Positional embeddings
+        self.pos_embed = nn.Parameter(torch.randn(1, 1 + 3 * self.patch_dim, embed_dim))
+        
+        # Modality token embeddings (added per patch token depending on source)
+        self.modality_tokens = nn.Parameter(torch.randn(3, 1, embed_dim))  # 0=SO2, 1=THb, 2=US
+
+        # Transformer encoder
+        encoder_layer = nn.TransformerEncoderLayer(d_model=embed_dim, nhead=num_heads, batch_first=True)
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        
+        # Classification head
+        self.mlp_head = nn.Sequential(
+            nn.LayerNorm(embed_dim),
+            nn.Linear(embed_dim, num_classes)
+        )
+
+        self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([3.0]))
+
+    def forward(self, x):  #so2, thb): #, us):
+
+        x_sdf = self.sdf_model(x)
+        x_sdf = self.normalize_sdf(x_sdf)
+
+        lower_thresh = torch.empty(1).uniform_(-0.45, -0.15).item()
+        upper_thresh = torch.empty(1).uniform_(0.35, 0.65).item()
+        center_thresh = torch.empty(1).uniform_(0.1, 0.25).item()
+
+        boundary_mask = (x_sdf < upper_thresh) & (x_sdf > lower_thresh)
+        center_mask = (x_sdf < center_thresh)
+
+        so2 = x * boundary_mask
+        thb = x * center_mask
+
+
+        so2, thb,  = x[0], x[1]
+        B = so2.size(0)
+
+        # 1. Patch embeddings via modality-specific CNNs
+        so2_patches = rearrange(self.so2_cnn(so2), 'b c h w -> b (h w) c')
+        thb_patches = rearrange(self.thb_cnn(thb), 'b c h w -> b (h w) c')
+        us_patches  = rearrange(self.us_cnn(x),  'b c h w -> b (h w) c')
+
+        # 2. Add modality-specific tokens
+        so2_patches += self.modality_tokens[0]
+        thb_patches += self.modality_tokens[1]
+        #us_patches  += self.modality_tokens[2]
+
+        # 3. Concatenate all patches with CLS token
+        cls_tokens = self.cls_token.expand(B, -1, -1)  # [B, 1, D]
+        x = torch.cat([cls_tokens, so2_patches, thb_patches], dim=1)  # [B, 1 + 3*N, D]
+
+        # 4. Add positional embedding
+        x += self.pos_embed[:, :x.size(1), :]
+
+        # 5. Transformer encoding
+        x = self.transformer(x)
+
+        # 6. Classification head on CLS token
+        cls_output = x[:, 0]
+        return self.mlp_head(cls_output)
+    
+    def compute_loss(self, x, y, x2_rad=None):
+        y = y.float()  # Ensure targets are float for BCE loss
+        if x2_rad is not None:
+            score, tails = self.forward(x, x2_rad)
+            loss = self.loss_fn(score, y) + sum(self.loss_fn(t, y) for t in tails)
+        else:
+            score = self.forward(x)
+            loss = self.loss_fn(score, y) #+ 0.5 * self.loss_fn2(score, y)
+
+        return loss
+
+    def predict_on_loader(self, dataloader, threshold=0.5):
+        self.eval()
+        all_probs, all_targets = [], []
+
+        device = next(self.parameters()).device
+
+        with torch.no_grad():
+            for batch in dataloader:
+                if len(batch) == 2:
+                    x, y = batch
+                    x, y = x.to(device), y.to(device)
+                    scores = self.forward(x)
+                else:
+                    x, x2, y = batch
+                    x, x2, y = x.to(device), x2.to(device), y.to(device)
+                    scores = self.forward([x, x2])
+
+                probs = torch.sigmoid(scores)
+                all_probs.append(probs.cpu())
+                all_targets.append(y.cpu())
+
+        return torch.cat(all_targets).numpy(), torch.cat(all_probs).numpy()
+    
+    def normalize_sdf(self, sdf_image):
+        sdf_image = (sdf_image - sdf_image.min()) / (sdf_image.max() - sdf_image.min() + 1e-8)
+        return sdf_image * 2 - 1
 
 if __name__ == "__main__":
     model = MultiModalCancerClassifierWithAttention()

@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from sklearn.metrics import roc_curve, auc
 from torch.utils.data import DataLoader
-from fusion_models import BinaryClassificationTorch
+from fusion_models import BinaryClassificationTorch, ThreeModalTransformerClassifier
 from dataset_washu2 import Classificaiton_Dataset
 from utils import plot_roc_curve, compute_weighted_accuracy, calculate_auc
 from tqdm import tqdm 
@@ -65,12 +65,12 @@ for fold in range(k_fold):
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, drop_last=True)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-    # Model
-    model = BinaryClassificationTorch(input_dim= 64, num_classes= 1,  
-                                 encoder_weight_path = r"checkpoints\normtverskyloss_binary_segmentation\a56e77a\best-checkpoint-epoch=77-validation\loss=0.2544.ckpt", 
-                                 sdf_model_path= r"checkpoints\deeplabv3_sdf_randomcrop\model_20250711_201243\epoch_84",
-                                 radiomics= False).to(device)
-
+    # # Model
+    # model = BinaryClassificationTorch(input_dim= 64, num_classes= 1,  
+    #                              encoder_weight_path = r"checkpoints\normtverskyloss_binary_segmentation\a56e77a\best-checkpoint-epoch=77-validation\loss=0.2544.ckpt", 
+    #                              sdf_model_path= r"checkpoints\deeplabv3_sdf_randomcrop\model_20250711_201243\epoch_84",
+    #                              radiomics= False).to(device)
+    model = ThreeModalTransformerClassifier(num_classes = 1).to(device)
     #optimizer = torch.optim.Adam(model.parameters(), lr=5e-5, weight_decay=1e-5)
     optimizer = torch.optim.AdamW(model.parameters(), lr=5e-4, weight_decay=1e-2)
     scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=2, eta_min=1e-6)
