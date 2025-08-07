@@ -315,7 +315,7 @@ class ThreeModalTransformerClassifier(nn.Module):
         #so2, thb,  = x[0], x[1]
         B = so2.size(0)
 
-        if self.commond_root_patcher:
+        if self.common_root_patcher:
             so2_patches = self.common_patcher(so2)
             thb_patches = self.common_patcher(thb)
             us_patches  = self.common_patcher(x)
