@@ -296,7 +296,7 @@ class ThreeModalTransformerClassifier(nn.Module):
         thb = x * center_mask
 
 
-        so2, thb,  = x[0], x[1]
+        #so2, thb,  = x[0], x[1]
         B = so2.size(0)
 
         # 1. Patch embeddings via modality-specific CNNs
