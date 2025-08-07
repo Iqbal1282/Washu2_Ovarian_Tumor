@@ -263,7 +263,7 @@ class ThreeModalTransformerClassifier(nn.Module):
         self.sdf_model.load_state_dict(torch.load(sdf_model_path))
         for p in self.sdf_model.parameters(): p.requires_grad = False
 
-        
+        self.common_root_patcher = common_root_patcher
         self.patch_dim = (img_size // patch_size) ** 2
         self.patch_embed_dim = embed_dim
 
