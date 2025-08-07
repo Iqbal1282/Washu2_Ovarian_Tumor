@@ -307,7 +307,7 @@ class ThreeModalTransformerClassifier(nn.Module):
         # 2. Add modality-specific tokens
         so2_patches += self.modality_tokens[0]
         thb_patches += self.modality_tokens[1]
-        #us_patches  += self.modality_tokens[2]
+        us_patches  += self.modality_tokens[2]
 
         # 3. Concatenate all patches with CLS token
         cls_tokens = self.cls_token.expand(B, -1, -1)  # [B, 1, D]
@@ -321,7 +321,7 @@ class ThreeModalTransformerClassifier(nn.Module):
 
         # 6. Classification head on CLS token
         cls_output = x[:, 0]
-        return self.mlp_head(cls_output)
+        return self.mlp_head(cls_output).squeeze()
     
     def compute_loss(self, x, y, x2_rad=None):
         y = y.float()  # Ensure targets are float for BCE loss
